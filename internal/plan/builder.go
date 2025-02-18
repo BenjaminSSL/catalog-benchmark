@@ -46,10 +46,12 @@ func (b *Builder) CreateDelete(times int) *Builder {
 }
 
 func (b *Builder) BuildExecutionPlan() []execution.Plan {
-	var plans = make([]execution.Plan, b.threads)
+	var plans = make([]execution.Plan, 0)
 
 	for _, operations := range b.operations {
+
 		plans = append(plans, execution.Plan{Steps: operations})
 	}
+
 	return plans
 }
