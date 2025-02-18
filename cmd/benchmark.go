@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"benchmark/internal/common"
 	"benchmark/internal/execution"
 	"benchmark/internal/factories"
 	"benchmark/internal/plan"
@@ -55,7 +56,12 @@ func runBenchmark(experimentID string, benchmarkID int, catalog string, threads 
 
 	if catalog == "polaris" {
 		host = os.Getenv("POLARIS_HOST")
-		token := os.Getenv("POLARIS_TOKEN")
+
+		token, err := common.FetchPolarisToken(host)
+		if err != nil {
+			return err
+		}
+
 		factory = factories.NewPolarisFactory(host, token)
 	} else if catalog == "unity" {
 		host = os.Getenv("UNITY_HOST")
@@ -64,7 +70,7 @@ func runBenchmark(experimentID string, benchmarkID int, catalog string, threads 
 
 	executionPlan := plan.NewBuilder(factory, threads).CreateDelete(100).BuildExecutionPlan()
 	engine := execution.NewExecutionEngine(executionPlan)
-	engine.Start()
+	engine.Run()
 
 	return nil
 }
