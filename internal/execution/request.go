@@ -2,7 +2,6 @@ package execution
 
 import (
 	"bytes"
-	"log"
 	"net/http"
 )
 
@@ -24,7 +23,6 @@ func (request Request) Execute() int {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error executing request: %s", err)
 		return 0
 	}
 

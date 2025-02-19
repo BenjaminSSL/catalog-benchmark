@@ -5,7 +5,6 @@ import (
 	"benchmark/internal/execution"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -22,7 +21,6 @@ func (op *CreateCatalog) Build(context common.RequestContext) execution.Request 
 
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		log.Printf("failed to serialize the request body: %v", err)
 		panic(err)
 	}
 
