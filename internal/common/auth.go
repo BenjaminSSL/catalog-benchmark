@@ -14,7 +14,7 @@ func FetchPolarisToken(host string) (string, error) {
 	secret := os.Getenv("POLARIS_CLIENT_SECRET")
 
 	if id == "" || secret == "" {
-		return "", fmt.Errorf("Client-id and client-secret variables must be set")
+		return "", fmt.Errorf("client-id and client-secret variables must be set")
 	}
 
 	oauthURL := fmt.Sprintf("http://%s/api/catalog/v1/oauth/tokens", host)

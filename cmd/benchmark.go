@@ -68,8 +68,8 @@ func runBenchmark(experimentID string, benchmarkID int, catalog string, threads 
 		factory = factories.NewUnityFactory(host)
 	}
 
-	executionPlan := plan.NewBuilder(factory, threads).CreateDelete(300).BuildExecutionPlan()
-	engine := execution.NewExecutionEngine(executionPlan)
+	executionPlan := plan.NewBuilder(factory, threads).CreateDelete(2).BuildExecutionPlan()
+	engine := execution.NewExecutionEngine(experimentID, executionPlan)
 	engine.Run()
 
 	return nil

@@ -2,23 +2,94 @@ package common
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
+	"fmt"
+	"log"
+
 	"os"
-	"sync"
+	"path/filepath"
 	"time"
 )
 
-type Logger struct {
-}
-
-type logFile struct {
-	mu   sync.Mutex
-	file *os.File
+type RoutineBatchLogger struct {
+	ExperimentID string
+	TheadID      int
+	file         *os.File // Single file for each logging struct
+	buffer       []LogEntry
+	batchSize    int
 }
 
 type LogEntry struct {
-	ExperimentID uuid.UUID
+	ExperimentID string
 	ThreadID     int
-	Timestamp    time.Time
-	Message      json.RawMessage
+	Timestamp    string
+	Message      string
+	Data         any
+}
+
+func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batchSize int) (*RoutineBatchLogger, error) {
+	// Creates the log directory, if it already exists it does not create a new directory
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create the log directory: %w", err)
+	}
+
+	// Create the file
+	filename := filepath.Join(logDir, fmt.Sprintf("%s_%d.jsonl", experimentID, theadID))
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %s: %w", filename, err)
+	}
+
+	return &RoutineBatchLogger{
+		ExperimentID: experimentID,
+		TheadID:      theadID,
+		file:         file,
+		buffer:       make([]LogEntry, 0, batchSize),
+		batchSize:    batchSize,
+	}, nil
+
+}
+
+func (l *RoutineBatchLogger) Log(level string, message string, data any) error {
+	l.buffer = append(l.buffer, LogEntry{
+		ExperimentID: l.ExperimentID,
+		ThreadID:     l.TheadID,
+		Timestamp:    time.Now().UTC().Format(time.RFC3339),
+		Message:      message,
+		Data:         data,
+	})
+
+	if len(l.buffer) >= l.batchSize {
+		return l.Flush()
+	}
+	return nil
+}
+
+func (l *RoutineBatchLogger) Flush() error {
+	if len(l.buffer) == 0 {
+		return nil
+	}
+	log.Printf("Buffer length: %d, Buffer contents: %+v\n", len(l.buffer), l.buffer)
+
+	for i, entry := range l.buffer {
+
+		jsonData, err := json.Marshal(entry)
+		log.Println("log %d, %s", i, string(jsonData))
+		if err != nil {
+			return fmt.Errorf("failed to marshal log entry: %v", err)
+		}
+		if _, err := l.file.Write(append(jsonData, '\n')); err != nil {
+			return fmt.Errorf("failed to write log entry: %v", err)
+		}
+	}
+
+	// Reset the buffer
+	l.buffer = l.buffer[:0]
+	return nil
+}
+
+func (l *RoutineBatchLogger) Close() error {
+	if err := l.Flush(); err != nil {
+		return err
+	}
+	return nil
 }

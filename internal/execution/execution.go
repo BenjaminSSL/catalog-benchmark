@@ -1,23 +1,26 @@
 package execution
 
 import (
+	"benchmark/internal/common"
+	"fmt"
 	"log"
 	"sync"
 )
 
 type Plan struct {
 	Steps []Request
-	wg    sync.WaitGroup
 }
 
 type Engine struct {
-	Plans []Plan
-	wg    sync.WaitGroup
+	ExperimentID string
+	Plans        []Plan
+	wg           sync.WaitGroup
 }
 
-func NewExecutionEngine(plans []Plan) *Engine {
+func NewExecutionEngine(ExperimentID string, plans []Plan) *Engine {
 	return &Engine{
-		Plans: plans,
+		ExperimentID: ExperimentID,
+		Plans:        plans,
 	}
 }
 
@@ -25,16 +28,27 @@ func (engine *Engine) Run() {
 	for i := range engine.Plans {
 		engine.wg.Add(1)
 		go func(id int, executionPlan *Plan) {
-			log.Printf("Starting execution plan %d\n", id)
+			logger, err := common.NewRoutineBatchLogger("./logs", engine.ExperimentID, i, 100)
+			if err != nil {
+				log.Fatal(err)
+			}
 			defer engine.wg.Done()
+			defer logger.Close()
 
-			for i, task := range executionPlan.Steps {
-				stausCode := task.Execute()
-				log.Printf("Completed step %d in execution plan %d with status: %d", i, id, stausCode)
+			log.Printf("Starting execution plan %d\n", id)
+			for taskID, task := range executionPlan.Steps {
+				logger.Log("INFO", fmt.Sprintf("Starting step %d", taskID), nil)
+				log.Printf("Starting task %d", taskID)
+				statusCode := task.Execute()
+				if statusCode != 0 {
+					logger.Log("INFO", fmt.Sprintf("Finished step %d", taskID), nil)
+				} else {
+					logger.Log("ERROR", fmt.Sprintf("Step %d has failed", taskID), nil)
+				}
+				log.Printf("Finished step %d", taskID)
 
 			}
 
-			executionPlan.wg.Wait()
 			log.Printf("Execution plan %d has completed\n", id)
 		}(i, &engine.Plans[i])
 	}
