@@ -3,8 +3,6 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-
 	"os"
 	"path/filepath"
 	"time"
@@ -70,12 +68,11 @@ func (l *RoutineBatchLogger) Flush() error {
 	if len(l.buffer) == 0 {
 		return nil
 	}
-	log.Printf("Buffer length: %d, Buffer contents: %+v\n", len(l.buffer), l.buffer)
 
-	for i, entry := range l.buffer {
+	for _, entry := range l.buffer {
 
 		jsonData, err := json.Marshal(entry)
-		log.Println("log %d, %s", i, string(jsonData))
+
 		if err != nil {
 			return fmt.Errorf("failed to marshal log entry: %v", err)
 		}
