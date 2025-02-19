@@ -52,7 +52,7 @@ func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batc
 
 func (l *RoutineBatchLogger) Log(level string, message string, data any) error {
 	l.buffer = append(l.buffer, LogEntry{
-		level:        level,
+		Level:        level,
 		ExperimentID: l.ExperimentID,
 		ThreadID:     l.TheadID,
 		Timestamp:    time.Now().UTC().Format(time.RFC3339),
