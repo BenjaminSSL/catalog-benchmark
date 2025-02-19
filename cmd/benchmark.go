@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"os"
+	"time"
 )
 
 func init() {
@@ -68,9 +69,14 @@ func runBenchmark(experimentID string, benchmarkID int, catalog string, threads 
 		factory = factories.NewUnityFactory(host)
 	}
 
-	executionPlan := plan.NewBuilder(factory, threads).CreateDelete(2).BuildExecutionPlan()
+	executionPlan := plan.NewBuilder(factory, threads).CreateDelete(100).BuildExecutionPlan()
 	engine := execution.NewExecutionEngine(experimentID, executionPlan)
+	startTime := time.Now()
 	engine.Run()
+
+	elapsedTime := time.Since(startTime)
+
+	log.Printf("Finished in %f seconds experiment %s\n", elapsedTime.Seconds(), experimentID)
 
 	return nil
 }
