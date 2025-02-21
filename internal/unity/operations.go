@@ -2,9 +2,7 @@ package unity
 
 import (
 	"benchmark/internal/common"
-	"benchmark/internal/execution"
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -12,8 +10,7 @@ type CreateCatalog struct {
 	Name string
 }
 
-func (op *CreateCatalog) Build(context common.RequestContext) execution.Request {
-	baseURL := fmt.Sprintf("http://%s/api/2.1/unity-catalog/catalogs", context.Host)
+func (op *CreateCatalog) Build(context common.RequestContext) (*http.Request, error) {
 
 	body := CreateCatalogBody{
 		Name: op.Name,
@@ -24,13 +21,5 @@ func (op *CreateCatalog) Build(context common.RequestContext) execution.Request 
 		panic(err)
 	}
 
-	headers := http.Header{}
-	headers.Add("Content-Type", "application/json")
-
-	return execution.Request{
-		Method:  "POST",
-		URL:     baseURL,
-		Body:    jsonBody,
-		Headers: headers,
-	}
+	return common.NewRequestBuilder(context).SetEndpoint("/api/2.1/unity-catalog/catalogs").SetJSONBody(jsonBody).Build()
 }

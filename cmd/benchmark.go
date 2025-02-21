@@ -38,23 +38,26 @@ func newBenchmarkCommand() *Command {
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 
+	benchmarkType := plan.BenchmarkType(config.BenchmarkID)
+
 	return &Command{
 		Name:        "benchmark",
 		Description: "Run the benchmark driver for the catalogs",
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
-			return runBenchmark(config.ExperimentID, config.BenchmarkID, config.Catalog, config.Threads)
+			return runBenchmark(config.ExperimentID, benchmarkType, config.Catalog, config.Threads)
 		},
 	}
 }
 
-func runBenchmark(experimentID string, benchmarkID int, catalog string, threads int) error {
+func runBenchmark(experimentID string, benchmarkID plan.BenchmarkType, catalog string, threads int) error {
 	log.Printf("Starting experiment %s\n", experimentID)
 
 	var host string
 	var factory factories.CatalogOperationFactory
 
+	// Set up the catalog and their factory
 	if catalog == "polaris" {
 		host = os.Getenv("POLARIS_HOST")
 
@@ -69,8 +72,15 @@ func runBenchmark(experimentID string, benchmarkID int, catalog string, threads 
 		factory = factories.NewUnityFactory(host)
 	}
 
-	executionPlan := plan.NewBuilder(factory, threads).CreateDelete(100).BuildExecutionPlan()
-	engine := execution.NewExecutionEngine(experimentID, executionPlan)
+	builder := plan.NewBuilder(factory, threads)
+
+	executionPlans, err := plan.GetExecutionPlanFromBenchmarkID(benchmarkID, builder)
+	if err != nil {
+		log.Printf("Error getting execution plan: %s\n", err)
+		return err
+	}
+
+	engine := execution.NewExecutionEngine(experimentID, executionPlans)
 	startTime := time.Now()
 	engine.Run()
 

@@ -3,8 +3,28 @@ package plan
 import (
 	"benchmark/internal/execution"
 	"benchmark/internal/factories"
+	"fmt"
 	"github.com/google/uuid"
 )
+
+type BenchmarkType int
+
+const (
+	CreateDeleteBenchmark BenchmarkType = iota + 1
+	CreateBenchmark
+)
+
+func GetExecutionPlanFromBenchmarkID(benchmarkID BenchmarkType, builder *Builder) ([]execution.Plan, error) {
+	switch benchmarkID {
+	case CreateDeleteBenchmark:
+		return builder.CreateDelete(100).BuildExecutionPlan(), nil
+	case CreateBenchmark:
+		return builder.Create(100).BuildExecutionPlan(), nil
+	default:
+		return nil, fmt.Errorf("unknown BenchmarkType: %v", benchmarkID)
+	}
+
+}
 
 type Builder struct {
 	factory    factories.CatalogOperationFactory
