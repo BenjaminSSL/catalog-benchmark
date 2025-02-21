@@ -62,3 +62,19 @@ func (op *DeleteCatalog) Build(context common.RequestContext) execution.Request 
 		Headers: headers,
 	}
 }
+
+type ListCatalogs struct {
+}
+
+func (op *ListCatalogs) Build(context common.RequestContext) execution.Request {
+	baseURL := fmt.Sprintf("http://%s/api/management/v1/catalogs", context.Host)
+
+	headers := http.Header{}
+	headers.Add("Authorization", fmt.Sprintf("Bearer %s", context.Token))
+
+	return execution.Request{
+		Method:  "GET",
+		URL:     baseURL,
+		Headers: headers,
+	}
+}

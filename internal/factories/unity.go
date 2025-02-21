@@ -27,5 +27,6 @@ func (f *UnityFactory) CreateCatalogRequest(name string) execution.Request {
 }
 
 func (f *UnityFactory) DeleteCatalogRequest(name string) execution.Request {
+	panic("This operation is not supported on unity catalog")
 	return execution.Request{}
 }
