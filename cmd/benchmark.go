@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"benchmark/internal/catalog"
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
 	"benchmark/internal/requests"
@@ -50,14 +51,14 @@ func newBenchmarkCommand() *Command {
 	}
 }
 
-func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalog string, threads int) error {
+func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalogName string, threads int) error {
 	log.Printf("Starting experiment %s with benchmark scenario %d", experimentID, benchmarkID)
 
 	var host string
 	var requestFactory requests.CatalogRequestFactory
 
-	// Set up the catalog and their factory
-	if catalog == "polaris" {
+	// Set up the catalogName and their factory
+	if catalogName == "polaris" {
 		host = os.Getenv("POLARIS_HOST")
 
 		token, err := common.FetchPolarisToken(host)
@@ -68,13 +69,12 @@ func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catal
 		log.Printf("Fetched the token from Polaris")
 
 		requestFactory = requests.NewPolarisFactory(host, token)
-	} else if catalog == "unity" {
+	} else if catalogName == "unity" {
 		host = os.Getenv("UNITY_HOST")
 		requestFactory = requests.NewUnityFactory(host)
 	}
 
-	planFactory := scenario.NewExecutionPlanFactory(requestFactory, threads, 1000)
-
+	planFactory := scenario.NewExecutionPlanFactory(requestFactory, catalog.Catalog, threads, 100)
 	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(benchmarkID, planFactory)
 	if err != nil {
 		log.Printf("Error getting execution scenario: %s\n", err)

@@ -8,7 +8,7 @@ type CatalogProperties struct {
 	DefaultBaseLocation string            `json:"default-base-location"`
 	AdditionalProps     map[string]string `json:"-"`
 }
-type SchemaCatalog struct {
+type Catalog struct {
 	EntityType          string                   `json:"type"`
 	Name                string                   `json:"name"`
 	Properties          CatalogProperties        `json:"properties"`
@@ -19,5 +19,7 @@ type SchemaCatalog struct {
 }
 
 type CreateCatalogBody struct {
-	Catalog SchemaCatalog `json:"catalog"`
+	Catalog Catalog `json:"catalog"`
 }
+
+type CreateSchemaBody struct{}

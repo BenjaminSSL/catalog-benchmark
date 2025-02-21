@@ -14,7 +14,7 @@ type CreateCatalog struct {
 func (op *CreateCatalog) Build(context common.RequestContext) (*http.Request, error) {
 
 	body := CreateCatalogBody{
-		Catalog: SchemaCatalog{
+		Catalog: Catalog{
 			EntityType: "INTERNAL",
 			Name:       op.Name,
 			Properties: CatalogProperties{
@@ -56,4 +56,30 @@ type UpdateCatalog struct{}
 func (op *UpdateCatalog) Build(context common.RequestContext) (*http.Request, error) {
 	return nil, nil
 
+}
+
+type CreateSchema struct {
+	Name string
+}
+
+func (op *CreateSchema) Build(context common.RequestContext) (*http.Request, error) {
+	body := CreateCatalogBody{
+		Catalog: Catalog{
+			EntityType: "INTERNAL",
+			Name:       op.Name,
+			Properties: CatalogProperties{
+				DefaultBaseLocation: fmt.Sprintf("/%s/", op.Name),
+			},
+			StorageConfigInfo: CatalogStorageConfigInfo{
+				StorageType: "FILE",
+			},
+		},
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		panic(err)
+	}
+
+	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/management/v1/catalogs").SetJSONBody(jsonBody).Build()
 }

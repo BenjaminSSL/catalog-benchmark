@@ -3,6 +3,7 @@ package requests
 import (
 	"benchmark/internal/catalog/unity"
 	"benchmark/internal/common"
+	"fmt"
 	"net/http"
 )
 
@@ -18,25 +19,29 @@ func NewUnityFactory(endpoint string) *UnityFactory {
 	}
 }
 
-func (f *UnityFactory) CreateCatalogRequest(name string) (*http.Request, error) {
+func (f *UnityFactory) CreateCatalogRequest(params CreateCatalogParams) (*http.Request, error) {
 	operation := unity.CreateCatalog{
-		Name: name,
+		Name: params.Name,
 	}
 
 	return operation.Build(f.RequestContext)
 }
 
-func (f *UnityFactory) DeleteCatalogRequest(name string) (*http.Request, error) {
-	panic("This operation is not supported on unity catalog")
-	return nil, nil
+func (f *UnityFactory) DeleteCatalogRequest(params DeleteCatalogParams) (*http.Request, error) {
+
+	return nil, fmt.Errorf("this operation is not supported")
 }
 
-func (f *UnityFactory) UpdateCatalogRequest(name string) (*http.Request, error) {
-	panic("This operation is not supported on unity catalog")
-	return nil, nil
+func (f *UnityFactory) UpdateCatalogRequest(params UpdateCatalogParams) (*http.Request, error) {
+
+	return nil, fmt.Errorf("this operation is not supported")
 }
 
 func (f *UnityFactory) ListCatalogsRequest() (*http.Request, error) {
-	panic("This operation is not supported on unity catalog")
-	return nil, nil
+
+	return nil, fmt.Errorf("this operation is not supported")
+}
+
+func (f *UnityFactory) CreateSchemaRequest(params CreateSchemaParams) (*http.Request, error) {
+	return nil, fmt.Errorf("this operation is not supported")
 }
