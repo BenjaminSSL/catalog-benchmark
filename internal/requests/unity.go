@@ -1,8 +1,8 @@
-package factories
+package requests
 
 import (
+	"benchmark/internal/catalog/unity"
 	"benchmark/internal/common"
-	"benchmark/internal/unity"
 	"net/http"
 )
 

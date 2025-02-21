@@ -39,7 +39,7 @@ type DeleteCatalog struct {
 }
 
 func (op *DeleteCatalog) Build(context common.RequestContext) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", context.Host, op.Name)
+	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", op.Name)
 	return common.NewRequestBuilder(context).SetEndpoint(endpoint).Build()
 
 }

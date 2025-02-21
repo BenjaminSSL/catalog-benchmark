@@ -3,8 +3,8 @@ package cmd
 import (
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
-	"benchmark/internal/factories"
-	"benchmark/internal/plan"
+	"benchmark/internal/requests"
+	"benchmark/internal/scenario"
 	"flag"
 	"github.com/google/uuid"
 	"log"
@@ -38,7 +38,7 @@ func newBenchmarkCommand() *Command {
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 
-	benchmarkType := plan.BenchmarkType(config.BenchmarkID)
+	benchmarkType := scenario.BenchmarkType(config.BenchmarkID)
 
 	return &Command{
 		Name:        "benchmark",
@@ -51,11 +51,11 @@ func newBenchmarkCommand() *Command {
 	}
 }
 
-func runBenchmark(experimentID string, benchmarkID plan.BenchmarkType, catalog string, threads int) error {
+func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalog string, threads int) error {
 	log.Printf("Starting experiment %s\n", experimentID)
 
 	var host string
-	var factory factories.CatalogOperationFactory
+	var requestFactory requests.CatalogRequestFactory
 
 	// Set up the catalog and their factory
 	if catalog == "polaris" {
@@ -66,17 +66,17 @@ func runBenchmark(experimentID string, benchmarkID plan.BenchmarkType, catalog s
 			return err
 		}
 
-		factory = factories.NewPolarisFactory(host, token)
+		requestFactory = requests.NewPolarisFactory(host, token)
 	} else if catalog == "unity" {
 		host = os.Getenv("UNITY_HOST")
-		factory = factories.NewUnityFactory(host)
+		requestFactory = requests.NewUnityFactory(host)
 	}
 
-	builder := plan.NewBuilder(factory, threads)
+	planFactory := scenario.NewExecutionPlanFactory(requestFactory, threads)
 
-	executionPlans, err := plan.GetExecutionPlanFromBenchmarkID(benchmarkID, builder)
+	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(benchmarkID, planFactory)
 	if err != nil {
-		log.Printf("Error getting execution plan: %s\n", err)
+		log.Printf("Error getting execution scenario: %s\n", err)
 		return err
 	}
 

@@ -1,7 +1,6 @@
 package common
 
 import (
-	"benchmark/internal/execution"
 	"bytes"
 	"fmt"
 	"net/http"
@@ -24,6 +23,7 @@ type RequestBuilder struct {
 func NewRequestBuilder(context RequestContext) *RequestBuilder {
 	return &RequestBuilder{
 		context: context,
+		headers: make(http.Header),
 	}
 }
 
@@ -43,8 +43,7 @@ func (b *RequestBuilder) AddHeader(key string, value string) *RequestBuilder {
 
 func (b *RequestBuilder) SetJSONBody(body []byte) *RequestBuilder {
 	b.body = body
-	b.headers.Add("Content-Type", "application/json")
-	return b
+	return b.AddHeader("Content-Type", "application/json")
 }
 
 func (b *RequestBuilder) Build() (*http.Request, error) {

@@ -1,10 +1,10 @@
-package factories
+package requests
 
 import (
 	"net/http"
 )
 
-type CatalogOperationFactory interface {
+type CatalogRequestFactory interface {
 	CreateCatalogRequest(name string) (*http.Request, error)
 	DeleteCatalogRequest(name string) (*http.Request, error)
 	UpdateCatalogRequest(name string) (*http.Request, error)

@@ -3,11 +3,13 @@ package execution
 import (
 	"benchmark/internal/common"
 	"fmt"
+	"log"
+	"net/http"
 	"sync"
 )
 
 type Plan struct {
-	Steps []Request
+	Steps []*http.Request
 }
 
 type Engine struct {
@@ -35,7 +37,12 @@ func (engine *Engine) Run() {
 			for taskID, task := range executionPlan.Steps {
 				logger.Log("INFO", fmt.Sprintf("Starting step %d", taskID), nil)
 
-				statusCode := task.Execute()
+				resp, err := http.DefaultClient.Do(task)
+				if err != nil {
+					log.Printf("failed to execute step %d: %v", taskID, err)
+				}
+
+				statusCode := resp.StatusCode
 				if statusCode != 0 {
 					logger.Log("INFO", fmt.Sprintf("Finished step %d", taskID), nil)
 				} else {

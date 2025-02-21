@@ -1,9 +1,8 @@
-package factories
+package requests
 
 import (
+	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/common"
-	"benchmark/internal/execution"
-	"benchmark/internal/polaris"
 	"net/http"
 )
 
