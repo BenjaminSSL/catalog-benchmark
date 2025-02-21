@@ -34,8 +34,12 @@ func (f *PolarisFactory) DeleteCatalogRequest(name string) execution.Request {
 	return operation.Build(f.RequestContext)
 }
 
+func (f *PolarisFactory) UpdateCatalogRequest(name string) execution.Request {
+	op
+}
+
 func (f *PolarisFactory) ListCatalogsRequest() execution.Request {
 	operation := polaris.ListCatalogs{}
 
-	return operation
+	return operation.Build(f.RequestContext)
 }

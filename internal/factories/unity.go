@@ -30,3 +30,13 @@ func (f *UnityFactory) DeleteCatalogRequest(name string) execution.Request {
 	panic("This operation is not supported on unity catalog")
 	return execution.Request{}
 }
+
+func (f *UnityFactory) UpdateCatalogRequest(name string) execution.Request {
+	panic("This operation is not supported on unity catalog")
+	return execution.Request{}
+}
+
+func (f *UnityFactory) ListCatalogsRequest() execution.Request {
+	panic("This operation is not supported on unity catalog")
+	return execution.Request{}
+}

@@ -13,7 +13,6 @@ type Request struct {
 }
 
 func (request Request) Execute() int {
-
 	req, err := http.NewRequest(request.Method, request.URL, bytes.NewBuffer(request.Body))
 	if err != nil {
 		panic(err)

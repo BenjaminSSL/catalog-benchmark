@@ -78,3 +78,5 @@ func (op *ListCatalogs) Build(context common.RequestContext) execution.Request {
 		Headers: headers,
 	}
 }
+
+type
