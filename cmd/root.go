@@ -25,9 +25,7 @@ func Run() {
 		log.Fatal("Error loading the enviroment variabels files .env")
 	}
 
-	flag.Parse()
-
-	args := flag.Args()
+	args := os.Args[1:]
 	// TODO: replace with proper help default command
 	if len(args) == 0 {
 		log.Println("No command to execute")

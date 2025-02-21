@@ -38,21 +38,20 @@ func newBenchmarkCommand() *Command {
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 
-	benchmarkType := scenario.BenchmarkType(config.BenchmarkID)
-
 	return &Command{
 		Name:        "benchmark",
 		Description: "Run the benchmark driver for the catalogs",
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
+			benchmarkType := scenario.BenchmarkType(config.BenchmarkID)
 			return runBenchmark(config.ExperimentID, benchmarkType, config.Catalog, config.Threads)
 		},
 	}
 }
 
 func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalog string, threads int) error {
-	log.Printf("Starting experiment %s\n", experimentID)
+	log.Printf("Starting experiment %s with benchmark scenario %d", experimentID, benchmarkID)
 
 	var host string
 	var requestFactory requests.CatalogRequestFactory
@@ -66,13 +65,15 @@ func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catal
 			return err
 		}
 
+		log.Printf("Fetched the token from Polaris")
+
 		requestFactory = requests.NewPolarisFactory(host, token)
 	} else if catalog == "unity" {
 		host = os.Getenv("UNITY_HOST")
 		requestFactory = requests.NewUnityFactory(host)
 	}
 
-	planFactory := scenario.NewExecutionPlanFactory(requestFactory, threads)
+	planFactory := scenario.NewExecutionPlanFactory(requestFactory, threads, 1000)
 
 	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(benchmarkID, planFactory)
 	if err != nil {

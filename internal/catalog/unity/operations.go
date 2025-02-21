@@ -21,5 +21,5 @@ func (op *CreateCatalog) Build(context common.RequestContext) (*http.Request, er
 		panic(err)
 	}
 
-	return common.NewRequestBuilder(context).SetEndpoint("/api/2.1/unity-catalog/catalogs").SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/2.1/unity-catalog/catalogs").SetJSONBody(jsonBody).Build()
 }

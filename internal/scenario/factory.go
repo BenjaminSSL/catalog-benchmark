@@ -11,16 +11,16 @@ import (
 type BenchmarkType int
 
 const (
-	CreateDeleteBenchmark BenchmarkType = iota + 1
-	CreateBenchmark
+	CreateBenchmark BenchmarkType = iota + 1
+	CreateDeleteBenchmark
 )
 
 func GetExecutionPlanFromBenchmarkID(benchmarkID BenchmarkType, factory *ExecutionPlanFactory) ([]execution.Plan, error) {
 	switch benchmarkID {
 	case CreateBenchmark:
-		return factory.Create(100)
+		return factory.Create()
 	case CreateDeleteBenchmark:
-		return factory.CreateDelete(100)
+		return factory.CreateDelete()
 	default:
 		return nil, fmt.Errorf("unknown BenchmarkType: %v", benchmarkID)
 	}
@@ -29,6 +29,7 @@ func GetExecutionPlanFromBenchmarkID(benchmarkID BenchmarkType, factory *Executi
 
 type ExecutionPlanFactory struct {
 	factory requests.CatalogRequestFactory
+	repeat  int
 	threads int
 }
 
@@ -38,18 +39,19 @@ type Builder struct {
 	threads    int
 }
 
-func NewExecutionPlanFactory(factory requests.CatalogRequestFactory, threads int) *ExecutionPlanFactory {
+func NewExecutionPlanFactory(factory requests.CatalogRequestFactory, threads int, repeat int) *ExecutionPlanFactory {
 	return &ExecutionPlanFactory{
 		factory: factory,
 		threads: threads,
+		repeat:  repeat,
 	}
 
 }
 
-func (f *ExecutionPlanFactory) Create(times int) ([]execution.Plan, error) {
+func (f *ExecutionPlanFactory) Create() ([]execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
-		for i := 0; i < times; i++ {
+		for i := 0; i < f.repeat; i++ {
 			name := uuid.New().String()
 			request, err := f.factory.CreateCatalogRequest(name)
 			if err != nil {
@@ -61,10 +63,10 @@ func (f *ExecutionPlanFactory) Create(times int) ([]execution.Plan, error) {
 	return buildPlans(operations), nil
 }
 
-func (f *ExecutionPlanFactory) CreateDelete(times int) ([]execution.Plan, error) {
+func (f *ExecutionPlanFactory) CreateDelete() ([]execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
-		for i := 0; i < times; i++ {
+		for i := 0; i < f.repeat; i++ {
 			name := uuid.New().String()
 			createRequest, err := f.factory.CreateCatalogRequest(name)
 			if err != nil {

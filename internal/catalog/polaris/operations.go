@@ -31,7 +31,7 @@ func (op *CreateCatalog) Build(context common.RequestContext) (*http.Request, er
 		panic(err)
 	}
 
-	return common.NewRequestBuilder(context).SetEndpoint("/api/management/v1/catalogs").SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/management/v1/catalogs").SetJSONBody(jsonBody).Build()
 }
 
 type DeleteCatalog struct {
@@ -40,7 +40,7 @@ type DeleteCatalog struct {
 
 func (op *DeleteCatalog) Build(context common.RequestContext) (*http.Request, error) {
 	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", op.Name)
-	return common.NewRequestBuilder(context).SetEndpoint(endpoint).Build()
+	return common.NewRequestBuilder(context).SetMethod("DELETE").SetEndpoint(endpoint).Build()
 
 }
 

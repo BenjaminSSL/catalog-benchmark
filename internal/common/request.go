@@ -23,10 +23,12 @@ type RequestBuilder struct {
 func NewRequestBuilder(context RequestContext) *RequestBuilder {
 	return &RequestBuilder{
 		context: context,
+		method:  "GET",
 		headers: make(http.Header),
 	}
 }
 
+// SetMethod sets the requests method. The default method is GET.
 func (b *RequestBuilder) SetMethod(method string) *RequestBuilder {
 	b.method = method
 	return b
