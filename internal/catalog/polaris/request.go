@@ -29,3 +29,7 @@ type UpdateCatalogBody struct {
 	Properties           CatalogProperties        `json:"properties"`
 	StorageConfigInfo    CatalogStorageConfigInfo `json:"storageConfigInfo"`
 }
+
+type ListCatalogsResponse struct {
+	Catalogs []Catalog `json:"catalogs"`
+}
