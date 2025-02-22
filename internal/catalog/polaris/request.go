@@ -1,8 +1,8 @@
 package polaris
 
 type CatalogStorageConfigInfo struct {
-	StorageType      string `json:"storageType"`
-	AllowedLocations string `json:"allowedLocations,omitempty"`
+	StorageType      string   `json:"storageType"`
+	AllowedLocations []string `json:"allowedLocations,omitempty"`
 }
 type CatalogProperties struct {
 	DefaultBaseLocation string            `json:"default-base-location"`

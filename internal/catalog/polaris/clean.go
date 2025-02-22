@@ -47,7 +47,28 @@ func (c *Cleaner) listCatalogsNames() ([]string, error) {
 	return names, nil
 }
 
-func CleanCatalogs(context common.RequestContext) error {
+func (c *Cleaner) CleanCatalogs() error {
+	catalogNames, err := c.listCatalogsNames()
+	if err != nil {
+		return err
+	}
+
+	for _, catalogName := range catalogNames {
+		deleteParams := DeleteCatalog{
+			Name: catalogName,
+		}
+		request, err := deleteParams.Build(c.context)
+		if err != nil {
+			return err
+		}
+
+		_, err = c.client.Do(request)
+		if err != nil {
+			return err
+		}
+
+	}
+
 	return nil
 
 }
