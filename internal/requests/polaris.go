@@ -3,6 +3,7 @@ package requests
 import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/common"
+	"fmt"
 	"net/http"
 )
 
@@ -19,25 +20,37 @@ func NewPolarisFactory(host string, token string) *PolarisFactory {
 	}
 }
 
-func (f *PolarisFactory) CreateCatalogRequest(params CreateCatalogParams) (*http.Request, error) {
+func (f *PolarisFactory) CreateCatalogRequest(params RequestParams) (*http.Request, error) {
+	p, ok := params.(CreateCatalogParams)
+	if !ok {
+		return nil, fmt.Errorf("invalid params")
+	}
 	operation := polaris.CreateCatalog{
-		Name: params.Name,
+		Name: p.Name,
 	}
 
 	return operation.Build(f.RequestContext)
 }
 
-func (f *PolarisFactory) DeleteCatalogRequest(params DeleteCatalogParams) (*http.Request, error) {
+func (f *PolarisFactory) DeleteCatalogRequest(params RequestParams) (*http.Request, error) {
+	p, ok := params.(DeleteCatalogParams)
+	if !ok {
+		return nil, fmt.Errorf("invalid params")
+	}
 	operation := polaris.DeleteCatalog{
-		Name: params.Name,
+		Name: p.Name,
 	}
 	return operation.Build(f.RequestContext)
 }
 
-func (f *PolarisFactory) UpdateCatalogRequest(params UpdateCatalogParams) (*http.Request, error) {
+func (f *PolarisFactory) UpdateCatalogRequest(params RequestParams) (*http.Request, error) {
+	p, ok := params.(UpdateCatalogParams)
+	if !ok {
+		return nil, fmt.Errorf("invalid params")
+	}
 	operation := polaris.UpdateCatalog{
-		Name:          params.Name,
-		EntityVersion: params.Version,
+		Name:          p.Name,
+		EntityVersion: p.Version,
 	}
 
 	return operation.Build(f.RequestContext)
@@ -49,7 +62,7 @@ func (f *PolarisFactory) ListCatalogsRequest() (*http.Request, error) {
 	return operation.Build(f.RequestContext)
 }
 
-func (f *PolarisFactory) CreateSchemaRequest(params CreateSchemaParams) (*http.Request, error) {
+func (f *PolarisFactory) CreateSchemaRequest(params RequestParams) (*http.Request, error) {
 	operation := polaris.CreateSchema{}
 
 	return operation.Build(f.RequestContext)
