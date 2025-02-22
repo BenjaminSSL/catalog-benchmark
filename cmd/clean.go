@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"benchmark/internal/catalog/polaris"
+	"benchmark/internal/catalog-refactor/polaris"
 	"benchmark/internal/common"
 	"flag"
 )
@@ -20,14 +20,14 @@ func newCleanCommand() *Command {
 	}{
 		// Default values
 		Catalog: "polaris",
-		Entity:  "catalog",
+		Entity:  "catalog-refactor",
 	}
 
-	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
+	flags.StringVar(&config.Catalog, "catalog-refactor", config.Catalog, "Catalog")
 	flags.StringVar(&config.Entity, "entity", config.Entity, "Entity")
 	return &Command{
 		Name:        "clean",
-		Description: "Clean up a specific entity in the catalog",
+		Description: "Clean up a specific entity in the catalog-refactor",
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags

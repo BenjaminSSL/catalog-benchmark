@@ -4,6 +4,16 @@ type CreateCatalogParams struct {
 	Name string
 }
 
-func (p CreateCatalogParams) Validate() error {
-	return nil
+type DeleteCatalogParams struct {
+	Name string
+}
+
+type UpdateCatalogParams struct {
+	Name    string
+	Version int
+}
+
+type CreateSchemaParams struct {
+	Name   string
+	Prefix string
 }

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"benchmark/internal/catalog"
+	"benchmark/internal/catalog-refactor"
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
 	"benchmark/internal/requests"
@@ -37,7 +37,7 @@ func newBenchmarkCommand() *Command {
 
 	flags.StringVar(&config.ExperimentID, "experimentID", config.ExperimentID, "Experiment ID")
 	flags.IntVar(&config.BenchmarkID, "benchmarkID", config.BenchmarkID, "Benchmark ID")
-	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
+	flags.StringVar(&config.Catalog, "catalog-refactor", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 	flags.IntVar(&config.Repeat, "repeat", config.Repeat, "Repeats")
 
@@ -69,7 +69,7 @@ func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catal
 		requestFactory = requests.NewUnityFactory(context.Host)
 	}
 
-	planFactory := scenario.NewExecutionPlanFactory(requestFactory, catalog.Catalog, threads, repeat)
+	planFactory := scenario.NewExecutionPlanFactory(requestFactory, catalog_refactor.Catalog, threads, repeat)
 	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(benchmarkID, planFactory)
 	if err != nil {
 		log.Printf("Error getting execution scenario: %s\n", err)

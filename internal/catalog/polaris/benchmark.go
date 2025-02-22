@@ -3,7 +3,6 @@ package polaris
 import (
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
-	"benchmark/internal/requests"
 
 	"benchmark/internal/scenario"
 	"github.com/google/uuid"
@@ -30,7 +29,7 @@ func (f *ExecutionPlanFactory) CreateCatalog() ([]execution.Plan, error) {
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
 			name := uuid.New().String()
-			req, err := f.factory.CreateCatalogRequest(co.CreateCatalogParams{Name: name})
+			req, err := f.factory.CreateCatalogRequest(CreateCatalogParams{Name: name})
 
 			if err != nil {
 				return nil, err

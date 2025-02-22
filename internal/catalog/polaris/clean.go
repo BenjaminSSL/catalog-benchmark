@@ -7,16 +7,16 @@ import (
 	"net/http"
 )
 
-type Cleaner struct {
+type CatalogCleaner struct {
 	context common.RequestContext
 	client  *http.Client
 }
 
-func NewCleaner(context common.RequestContext) *Cleaner {
-	return &Cleaner{context: context, client: &http.Client{}}
+func NewCleaner(context common.RequestContext) *CatalogCleaner {
+	return &CatalogCleaner{context: context, client: &http.Client{}}
 }
 
-func (c *Cleaner) listCatalogsNames() ([]string, error) {
+func (c *CatalogCleaner) listCatalogsNames() ([]string, error) {
 	listCatalogs := ListCatalogs{}
 	req, err := listCatalogs.Build(c.context)
 	if err != nil {
@@ -47,7 +47,7 @@ func (c *Cleaner) listCatalogsNames() ([]string, error) {
 	return names, nil
 }
 
-func (c *Cleaner) CleanCatalogs() error {
+func (c *CatalogCleaner) CleanCatalog() error {
 	catalogNames, err := c.listCatalogsNames()
 	if err != nil {
 		return err

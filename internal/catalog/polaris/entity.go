@@ -1,5 +1,7 @@
 package polaris
 
+// Polaris Schemas
+
 type CatalogStorageConfigInfo struct {
 	StorageType      string   `json:"storageType"`
 	AllowedLocations []string `json:"allowedLocations,omitempty"`
@@ -18,8 +20,10 @@ type Catalog struct {
 	StorageConfigInfo   CatalogStorageConfigInfo `json:"storageConfigInfo"`
 }
 
+// Request Bodies
+
 type CreateCatalogBody struct {
-	Catalog Catalog `json:"catalog"`
+	Catalog Catalog `json:"catalog-refactor"`
 }
 
 type CreateSchemaBody struct{}
@@ -29,6 +33,8 @@ type UpdateCatalogBody struct {
 	Properties           CatalogProperties        `json:"properties"`
 	StorageConfigInfo    CatalogStorageConfigInfo `json:"storageConfigInfo"`
 }
+
+// Responses
 
 type ListCatalogsResponse struct {
 	Catalogs []Catalog `json:"catalogs"`
