@@ -10,10 +10,10 @@ type PolarisFactory struct {
 	RequestContext common.RequestContext
 }
 
-func NewPolarisFactory(endpoint string, token string) *PolarisFactory {
+func NewPolarisFactory(host string, token string) *PolarisFactory {
 	return &PolarisFactory{
 		RequestContext: common.RequestContext{
-			Host:  endpoint,
+			Host:  host,
 			Token: token,
 		},
 	}
@@ -35,7 +35,12 @@ func (f *PolarisFactory) DeleteCatalogRequest(params DeleteCatalogParams) (*http
 }
 
 func (f *PolarisFactory) UpdateCatalogRequest(params UpdateCatalogParams) (*http.Request, error) {
-	return nil, nil
+	operation := polaris.UpdateCatalog{
+		Name:          params.Name,
+		EntityVersion: params.Version,
+	}
+
+	return operation.Build(f.RequestContext)
 }
 
 func (f *PolarisFactory) ListCatalogsRequest() (*http.Request, error) {

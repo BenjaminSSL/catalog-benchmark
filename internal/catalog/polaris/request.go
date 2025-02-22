@@ -23,3 +23,9 @@ type CreateCatalogBody struct {
 }
 
 type CreateSchemaBody struct{}
+
+type UpdateCatalogBody struct {
+	CurrentEntityVersion int                      `json:"currentEntityVersion"`
+	Properties           CatalogProperties        `json:"properties"`
+	StorageConfigInfo    CatalogStorageConfigInfo `json:"storageConfigInfo"`
+}

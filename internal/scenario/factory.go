@@ -12,17 +12,19 @@ import (
 type BenchmarkType int
 
 const (
-	CreateBenchmark BenchmarkType = iota + 1
-	CreateDeleteBenchmark
-	UpdateBenchmark
+	CreateCatalogBenchmark BenchmarkType = iota + 1
+	CreateDeleteCatalogBenchmark
+	UpdateCatalogBenchmark
 )
 
 func GetExecutionPlanFromBenchmarkID(benchmarkID BenchmarkType, factory *ExecutionPlanFactory) ([]execution.Plan, error) {
 	switch benchmarkID {
-	case CreateBenchmark:
-		return factory.Create()
-	case CreateDeleteBenchmark:
-		return factory.CreateDelete()
+	case CreateCatalogBenchmark:
+		return factory.CreateCatalog()
+	case CreateDeleteCatalogBenchmark:
+		return factory.CreateDeleteCatalog()
+	case UpdateCatalogBenchmark:
+		return factory.UpdateCatalog()
 	default:
 		return nil, fmt.Errorf("unknown BenchmarkType: %v", benchmarkID)
 	}
@@ -52,7 +54,7 @@ func NewExecutionPlanFactory(factory requests.CatalogRequestFactory, entityType 
 
 }
 
-func (f *ExecutionPlanFactory) Create() ([]execution.Plan, error) {
+func (f *ExecutionPlanFactory) CreateCatalog() ([]execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
@@ -74,7 +76,7 @@ func (f *ExecutionPlanFactory) Create() ([]execution.Plan, error) {
 	return buildPlans(operations), nil
 }
 
-func (f *ExecutionPlanFactory) CreateDelete() ([]execution.Plan, error) {
+func (f *ExecutionPlanFactory) CreateDeleteCatalog() ([]execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
@@ -91,6 +93,27 @@ func (f *ExecutionPlanFactory) CreateDelete() ([]execution.Plan, error) {
 			operations[thread] = append(operations[thread], createRequest)
 			operations[thread] = append(operations[thread], deleteRequest)
 
+		}
+	}
+
+	return buildPlans(operations), nil
+}
+
+func (f *ExecutionPlanFactory) UpdateCatalog() ([]execution.Plan, error) {
+	operations := make([][]*http.Request, f.threads)
+	for thread := 0; thread < f.threads; thread++ {
+		name := uuid.New().String()
+		createRequest, _ := f.factory.CreateCatalogRequest(requests.CreateCatalogParams{Name: name})
+		operations[thread] = append(operations[thread], createRequest)
+		entityVersion := 1
+		for i := 0; i < f.repeat; i++ {
+			updateRequest, _ := f.factory.UpdateCatalogRequest(requests.UpdateCatalogParams{
+				Name:    name,
+				Version: entityVersion,
+			})
+			operations[thread] = append(operations[thread], updateRequest)
+
+			entityVersion++
 		}
 	}
 

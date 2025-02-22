@@ -3,13 +3,38 @@ package common
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"path"
 )
 
 type RequestContext struct {
 	Host  string
 	Token string
+}
+
+func GetRequestContextFromEnv(catalogName string) (RequestContext, error) {
+	var host string
+	var token string
+	var err error
+
+	// Set up the catalogName and their factory
+	if catalogName == "polaris" {
+		host = os.Getenv("POLARIS_HOST")
+
+		token, err = FetchPolarisToken(host)
+		if err != nil {
+			return RequestContext{}, err
+		}
+
+		log.Printf("Fetched the token from Polaris")
+
+	} else if catalogName == "unity" {
+		host = os.Getenv("UNITY_HOST")
+	}
+
+	return RequestContext{host, token}, nil
 }
 
 type RequestBuilder struct {

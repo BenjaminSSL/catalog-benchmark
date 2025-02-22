@@ -28,7 +28,7 @@ func (op *CreateCatalog) Build(context common.RequestContext) (*http.Request, er
 
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/management/v1/catalogs").SetJSONBody(jsonBody).Build()
@@ -51,9 +51,28 @@ func (op *ListCatalogs) Build(context common.RequestContext) (*http.Request, err
 	return common.NewRequestBuilder(context).SetEndpoint("/api/management/v1/catalogs").Build()
 }
 
-type UpdateCatalog struct{}
+type UpdateCatalog struct {
+	Name          string
+	EntityVersion int
+}
 
 func (op *UpdateCatalog) Build(context common.RequestContext) (*http.Request, error) {
+	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", op.Name)
+	body := UpdateCatalogBody{
+		CurrentEntityVersion: op.EntityVersion,
+		Properties:           CatalogProperties{},
+		StorageConfigInfo: CatalogStorageConfigInfo{
+			StorageType: "FILE",
+		},
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return common.NewRequestBuilder(context).SetMethod("PUT").SetEndpoint(endpoint).SetJSONBody(jsonBody).Build()
+
 	return nil, nil
 
 }

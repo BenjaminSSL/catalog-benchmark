@@ -11,10 +11,10 @@ type UnityFactory struct {
 	RequestContext common.RequestContext
 }
 
-func NewUnityFactory(endpoint string) *UnityFactory {
+func NewUnityFactory(host string) *UnityFactory {
 	return &UnityFactory{
 		RequestContext: common.RequestContext{
-			Host: endpoint,
+			Host: host,
 		},
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"flag"
 	"github.com/google/uuid"
 	"log"
-	"os"
 	"time"
 )
 
@@ -26,18 +25,21 @@ func newBenchmarkCommand() *Command {
 		BenchmarkID  int
 		Catalog      string
 		Threads      int
+		Repeat       int
 	}{
 		// Default values
 		ExperimentID: uuid.NewString(),
 		BenchmarkID:  1,
 		Catalog:      "polaris",
 		Threads:      1,
+		Repeat:       1,
 	}
 
 	flags.StringVar(&config.ExperimentID, "experimentID", config.ExperimentID, "Experiment ID")
 	flags.IntVar(&config.BenchmarkID, "benchmarkID", config.BenchmarkID, "Benchmark ID")
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
+	flags.IntVar(&config.Repeat, "repeat", config.Repeat, "Repeats")
 
 	return &Command{
 		Name:        "benchmark",
@@ -46,35 +48,28 @@ func newBenchmarkCommand() *Command {
 		Handler: func() error {
 			// TODO: validate the flags
 			benchmarkType := scenario.BenchmarkType(config.BenchmarkID)
-			return runBenchmark(config.ExperimentID, benchmarkType, config.Catalog, config.Threads)
+			return runBenchmark(config.ExperimentID, benchmarkType, config.Catalog, config.Threads, config.Repeat)
 		},
 	}
 }
 
-func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalogName string, threads int) error {
+func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalogName string, threads int, repeat int) error {
 	log.Printf("Starting experiment %s with benchmark scenario %d", experimentID, benchmarkID)
 
-	var host string
 	var requestFactory requests.CatalogRequestFactory
 
-	// Set up the catalogName and their factory
-	if catalogName == "polaris" {
-		host = os.Getenv("POLARIS_HOST")
-
-		token, err := common.FetchPolarisToken(host)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("Fetched the token from Polaris")
-
-		requestFactory = requests.NewPolarisFactory(host, token)
-	} else if catalogName == "unity" {
-		host = os.Getenv("UNITY_HOST")
-		requestFactory = requests.NewUnityFactory(host)
+	context, err := common.GetRequestContextFromEnv(catalogName)
+	if err != nil {
+		return err
 	}
 
-	planFactory := scenario.NewExecutionPlanFactory(requestFactory, catalog.Catalog, threads, 100)
+	if catalogName == "polaris" {
+		requestFactory = requests.NewPolarisFactory(context.Host, context.Token)
+	} else if catalogName == "unity" {
+		requestFactory = requests.NewUnityFactory(context.Host)
+	}
+
+	planFactory := scenario.NewExecutionPlanFactory(requestFactory, catalog.Catalog, threads, repeat)
 	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(benchmarkID, planFactory)
 	if err != nil {
 		log.Printf("Error getting execution scenario: %s\n", err)
