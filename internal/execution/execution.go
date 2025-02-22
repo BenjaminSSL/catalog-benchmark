@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type Plan struct {
@@ -31,6 +32,7 @@ func (engine *Engine) Run() {
 		engine.wg.Add(1)
 		go func(id int, executionPlan *Plan) {
 			logger, _ := common.NewRoutineBatchLogger("./logs", engine.ExperimentID, i, 100)
+			client := &http.Client{Timeout: time.Second * 30}
 
 			defer engine.wg.Done()
 			defer logger.Close()
@@ -38,7 +40,7 @@ func (engine *Engine) Run() {
 			for taskID, task := range executionPlan.Steps {
 				logger.Log("INFO", fmt.Sprintf("Starting step %d", taskID), nil)
 
-				resp, err := http.DefaultClient.Do(task)
+				resp, err := client.Do(task)
 				if err != nil {
 					log.Printf("failed to execute step %d: %v", taskID, err)
 					continue
