@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"benchmark/internal/catalog-refactor/polaris"
+	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/common"
 	"flag"
 )
@@ -44,7 +44,7 @@ func runClean(catalog string, entity string) error {
 
 	cleaner := polaris.NewCleaner(context)
 
-	if err = cleaner.CleanCatalogs(); err != nil {
+	if err = cleaner.CleanCatalog(); err != nil {
 		return err
 	}
 	return nil

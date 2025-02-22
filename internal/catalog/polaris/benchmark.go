@@ -3,24 +3,22 @@ package polaris
 import (
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
-
-	"benchmark/internal/scenario"
 	"github.com/google/uuid"
 	"net/http"
 )
 
 type ExecutionPlanFactory struct {
-	factory *requests.PolarisFactory
+	factory *CatalogRequestFactory
 	threads int
 	repeat  int
 }
 
-func NewExecutionPlanFactory(context common.RequestContext, options scenario.ExecutionPlanFactoryOptions) *ExecutionPlanFactory {
+func NewExecutionPlanFactory(context common.RequestContext, threads int, repeat int) *ExecutionPlanFactory {
 
 	return &ExecutionPlanFactory{
-		factory: requests.NewPolarisFactory(context.Host, context.Token),
-		threads: options.Threads,
-		repeat:  options.Repeat,
+		factory: NewCatalogRequestFactory(context.Host, context.Token),
+		threads: threads,
+		repeat:  repeat,
 	}
 }
 
@@ -37,7 +35,7 @@ func (f *ExecutionPlanFactory) CreateCatalog() ([]execution.Plan, error) {
 			operations[thread] = append(operations[thread], req)
 		}
 	}
-	return scenario.BuildPlans(operations), nil
+	return BuildPlans(operations), nil
 }
 
 func (f *ExecutionPlanFactory) CreateDeleteCatalog() ([]execution.Plan, error) {
@@ -46,11 +44,11 @@ func (f *ExecutionPlanFactory) CreateDeleteCatalog() ([]execution.Plan, error) {
 		for i := 0; i < f.repeat; i++ {
 			name := uuid.New().String()
 
-			createRequest, err := f.factory.CreateCatalogRequest(requests.CreateCatalogParams{Name: name})
+			createRequest, err := f.factory.CreateCatalogRequest(CreateCatalogParams{Name: name})
 			if err != nil {
 				return nil, err
 			}
-			deleteRequest, err := f.factory.DeleteCatalogRequest(requests.DeleteCatalogParams{Name: name})
+			deleteRequest, err := f.factory.DeleteCatalogRequest(DeleteCatalogParams{Name: name})
 			if err != nil {
 				return nil, err
 			}
@@ -60,18 +58,18 @@ func (f *ExecutionPlanFactory) CreateDeleteCatalog() ([]execution.Plan, error) {
 		}
 	}
 
-	return scenario.BuildPlans(operations), nil
+	return BuildPlans(operations), nil
 }
 
 func (f *ExecutionPlanFactory) UpdateCatalog() ([]execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		name := uuid.New().String()
-		createRequest, _ := f.factory.CreateCatalogRequest(requests.CreateCatalogParams{Name: name})
+		createRequest, _ := f.factory.CreateCatalogRequest(CreateCatalogParams{Name: name})
 		operations[thread] = append(operations[thread], createRequest)
 		entityVersion := 1
 		for i := 0; i < f.repeat; i++ {
-			updateRequest, _ := f.factory.UpdateCatalogRequest(requests.UpdateCatalogParams{
+			updateRequest, _ := f.factory.UpdateCatalogRequest(UpdateCatalogParams{
 				Name:    name,
 				Version: entityVersion,
 			})
@@ -81,5 +79,13 @@ func (f *ExecutionPlanFactory) UpdateCatalog() ([]execution.Plan, error) {
 		}
 	}
 
-	return scenario.BuildPlans(operations), nil
+	return BuildPlans(operations), nil
+}
+func BuildPlans(operations [][]*http.Request) []execution.Plan {
+	var plans = make([]execution.Plan, 0)
+	for _, operation := range operations {
+
+		plans = append(plans, execution.Plan{Steps: operation})
+	}
+	return plans
 }

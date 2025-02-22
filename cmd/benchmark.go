@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"benchmark/internal/catalog-refactor"
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
-	"benchmark/internal/requests"
+
 	"benchmark/internal/scenario"
 	"flag"
 	"github.com/google/uuid"
@@ -56,21 +55,12 @@ func newBenchmarkCommand() *Command {
 func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalogName string, threads int, repeat int) error {
 	log.Printf("Starting experiment %s with benchmark scenario %d", experimentID, benchmarkID)
 
-	var requestFactory requests.CatalogRequestFactory
-
 	context, err := common.GetRequestContextFromEnv(catalogName)
 	if err != nil {
 		return err
 	}
 
-	if catalogName == "polaris" {
-		requestFactory = requests.NewPolarisFactory(context.Host, context.Token)
-	} else if catalogName == "unity" {
-		requestFactory = requests.NewUnityFactory(context.Host)
-	}
-
-	planFactory := scenario.NewExecutionPlanFactory(requestFactory, catalog_refactor.Catalog, threads, repeat)
-	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(benchmarkID, planFactory)
+	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(catalogName, benchmarkID, context, threads, repeat)
 	if err != nil {
 		log.Printf("Error getting execution scenario: %s\n", err)
 		return err

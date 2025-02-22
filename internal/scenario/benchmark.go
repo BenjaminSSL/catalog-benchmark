@@ -5,7 +5,6 @@ import (
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
 	"fmt"
-	"net/http"
 )
 
 type ExecutionPlanFactoryOptions struct {
@@ -21,10 +20,10 @@ const (
 	UpdateCatalogBenchmark
 )
 
-func GetExecutionPlanFromBenchmarkID(catalog string, benchmarkID BenchmarkType, context common.RequestContext, executionPlanFactoryOptions ExecutionPlanFactoryOptions) ([]execution.Plan, error) {
+func GetExecutionPlanFromBenchmarkID(catalog string, benchmarkID BenchmarkType, context common.RequestContext, threads int, repeat int) ([]execution.Plan, error) {
 	switch catalog {
 	case "polaris":
-		factory := polaris.NewExecutionPlanFactory(context, executionPlanFactoryOptions)
+		factory := polaris.NewExecutionPlanFactory(context, threads, repeat)
 
 		switch benchmarkID {
 		case CreateCatalogBenchmark:
@@ -41,13 +40,6 @@ func GetExecutionPlanFromBenchmarkID(catalog string, benchmarkID BenchmarkType, 
 		}
 	}
 
-}
+	return nil, fmt.Errorf("unknown BenchmarkType: %v", benchmarkID)
 
-func BuildPlans(operations [][]*http.Request) []execution.Plan {
-	var plans = make([]execution.Plan, 0)
-	for _, operation := range operations {
-
-		plans = append(plans, execution.Plan{Steps: operation})
-	}
-	return plans
 }
