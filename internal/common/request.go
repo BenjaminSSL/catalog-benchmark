@@ -9,6 +9,9 @@ import (
 	"path"
 )
 
+type RequestParams interface {
+	Validate() error
+}
 type RequestContext struct {
 	Host  string
 	Token string

@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"benchmark/internal/catalog"
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
-	"benchmark/internal/requests"
-	"benchmark/internal/scenario"
+	"benchmark/internal/plan"
+
 	"flag"
 	"github.com/google/uuid"
 	"log"
@@ -37,7 +36,7 @@ func newBenchmarkCommand() *Command {
 
 	flags.StringVar(&config.ExperimentID, "experimentID", config.ExperimentID, "Experiment ID")
 	flags.IntVar(&config.BenchmarkID, "benchmarkID", config.BenchmarkID, "Benchmark ID")
-	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
+	flags.StringVar(&config.Catalog, "catalog-refactor", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 	flags.IntVar(&config.Repeat, "repeat", config.Repeat, "Repeats")
 
@@ -47,30 +46,21 @@ func newBenchmarkCommand() *Command {
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
-			benchmarkType := scenario.BenchmarkType(config.BenchmarkID)
+			benchmarkType := plan.BenchmarkType(config.BenchmarkID)
 			return runBenchmark(config.ExperimentID, benchmarkType, config.Catalog, config.Threads, config.Repeat)
 		},
 	}
 }
 
-func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalogName string, threads int, repeat int) error {
+func runBenchmark(experimentID string, benchmarkID plan.BenchmarkType, catalogName string, threads int, repeat int) error {
 	log.Printf("Starting experiment %s with benchmark scenario %d", experimentID, benchmarkID)
-
-	var requestFactory requests.CatalogRequestFactory
 
 	context, err := common.GetRequestContextFromEnv(catalogName)
 	if err != nil {
 		return err
 	}
 
-	if catalogName == "polaris" {
-		requestFactory = requests.NewPolarisFactory(context.Host, context.Token)
-	} else if catalogName == "unity" {
-		requestFactory = requests.NewUnityFactory(context.Host)
-	}
-
-	planFactory := scenario.NewExecutionPlanFactory(requestFactory, catalog.Catalog, threads, repeat)
-	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(benchmarkID, planFactory)
+	executionPlans, err := plan.GetExecutionPlanFromBenchmarkID(catalogName, benchmarkID, context, threads, repeat)
 	if err != nil {
 		log.Printf("Error getting execution scenario: %s\n", err)
 		return err

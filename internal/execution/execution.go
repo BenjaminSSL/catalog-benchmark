@@ -10,17 +10,15 @@ import (
 	"time"
 )
 
-type Plan struct {
-	Steps []*http.Request
-}
+type Plans [][]*http.Request
 
 type Engine struct {
 	ExperimentID string
-	Plans        []Plan
+	Plans        Plans
 	wg           sync.WaitGroup
 }
 
-func NewExecutionEngine(ExperimentID string, plans []Plan) *Engine {
+func NewExecutionEngine(ExperimentID string, plans Plans) *Engine {
 	return &Engine{
 		ExperimentID: ExperimentID,
 		Plans:        plans,
@@ -30,14 +28,14 @@ func NewExecutionEngine(ExperimentID string, plans []Plan) *Engine {
 func (engine *Engine) Run() {
 	for i := range engine.Plans {
 		engine.wg.Add(1)
-		go func(id int, executionPlan *Plan) {
+		go func(id int, executionPlan []*http.Request) {
 			logger, _ := common.NewRoutineBatchLogger("./logs", engine.ExperimentID, i, 100)
 			client := &http.Client{Timeout: time.Second * 30}
 
 			defer engine.wg.Done()
 			defer logger.Close()
 
-			for taskID, task := range executionPlan.Steps {
+			for taskID, task := range executionPlan {
 				logger.Log("INFO", fmt.Sprintf("Starting step %d", taskID), nil)
 
 				resp, err := client.Do(task)
@@ -68,7 +66,7 @@ func (engine *Engine) Run() {
 
 			}
 
-		}(i, &engine.Plans[i])
+		}(i, engine.Plans[i])
 	}
 
 	engine.wg.Wait()

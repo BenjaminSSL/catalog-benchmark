@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -48,7 +49,7 @@ func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batc
 
 }
 
-func (l *RoutineBatchLogger) Log(level string, message string, data any) error {
+func (l *RoutineBatchLogger) Log(level string, message string, data any) {
 	l.buffer = append(l.buffer, LogEntry{
 		Level:        level,
 		ExperimentID: l.ExperimentID,
@@ -59,14 +60,14 @@ func (l *RoutineBatchLogger) Log(level string, message string, data any) error {
 	})
 
 	if len(l.buffer) >= l.batchSize {
-		return l.Flush()
+		l.Flush()
 	}
-	return nil
+
 }
 
-func (l *RoutineBatchLogger) Flush() error {
+func (l *RoutineBatchLogger) Flush() {
 	if len(l.buffer) == 0 {
-		return nil
+		return
 	}
 
 	for _, entry := range l.buffer {
@@ -74,21 +75,19 @@ func (l *RoutineBatchLogger) Flush() error {
 		jsonData, err := json.Marshal(entry)
 
 		if err != nil {
-			return fmt.Errorf("failed to marshal log entry: %v", err)
+			log.Fatalf("failed to marshal log entry: %v", err)
 		}
 		if _, err := l.file.Write(append(jsonData, '\n')); err != nil {
-			return fmt.Errorf("failed to write log entry: %v", err)
+			log.Fatalf("failed to write log entry: %v", err)
 		}
 	}
 
 	// Reset the buffer
 	l.buffer = l.buffer[:0]
-	return nil
 }
 
-func (l *RoutineBatchLogger) Close() error {
-	if err := l.Flush(); err != nil {
-		return err
-	}
-	return nil
+func (l *RoutineBatchLogger) Close() {
+	l.Flush()
+	l.file.Close()
+
 }

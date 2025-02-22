@@ -20,23 +20,23 @@ func newCleanCommand() *Command {
 	}{
 		// Default values
 		Catalog: "polaris",
-		Entity:  "catalog",
+		Entity:  "catalog-refactor",
 	}
 
-	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
+	flags.StringVar(&config.Catalog, "catalog-refactor", config.Catalog, "Catalog")
 	flags.StringVar(&config.Entity, "entity", config.Entity, "Entity")
 	return &Command{
 		Name:        "clean",
-		Description: "Clean up a specific entity in the catalog",
+		Description: "Clean up a specific entity in the catalog-refactor",
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
-			return runClean(config.Catalog, config.Entity)
+			return runClean(config.Catalog)
 		},
 	}
 }
 
-func runClean(catalog string, entity string) error {
+func runClean(catalog string) error {
 	context, err := common.GetRequestContextFromEnv(catalog)
 	if err != nil {
 		return err
@@ -44,7 +44,7 @@ func runClean(catalog string, entity string) error {
 
 	cleaner := polaris.NewCleaner(context)
 
-	if err = cleaner.CleanCatalogs(); err != nil {
+	if err = cleaner.CleanCatalog(); err != nil {
 		return err
 	}
 	return nil
