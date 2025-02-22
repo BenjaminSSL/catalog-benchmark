@@ -23,7 +23,7 @@ type Catalog struct {
 // Request Bodies
 
 type CreateCatalogBody struct {
-	Catalog Catalog `json:"catalog-refactor"`
+	Catalog Catalog `json:"catalog"`
 }
 
 type CreateSchemaBody struct{}

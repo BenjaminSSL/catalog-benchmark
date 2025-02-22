@@ -22,7 +22,7 @@ func NewExecutionPlanFactory(context common.RequestContext, threads int, repeat 
 	}
 }
 
-func (f *ExecutionPlanFactory) CreateCatalog() ([]execution.Plan, error) {
+func (f *ExecutionPlanFactory) CreateCatalog() (execution.Plans, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
@@ -38,7 +38,7 @@ func (f *ExecutionPlanFactory) CreateCatalog() ([]execution.Plan, error) {
 	return BuildPlans(operations), nil
 }
 
-func (f *ExecutionPlanFactory) CreateDeleteCatalog() ([]execution.Plan, error) {
+func (f *ExecutionPlanFactory) CreateDeleteCatalog() (execution.Plans, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
@@ -61,7 +61,7 @@ func (f *ExecutionPlanFactory) CreateDeleteCatalog() ([]execution.Plan, error) {
 	return BuildPlans(operations), nil
 }
 
-func (f *ExecutionPlanFactory) UpdateCatalog() ([]execution.Plan, error) {
+func (f *ExecutionPlanFactory) UpdateCatalog() (execution.Plans, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		name := uuid.New().String()
@@ -81,11 +81,11 @@ func (f *ExecutionPlanFactory) UpdateCatalog() ([]execution.Plan, error) {
 
 	return BuildPlans(operations), nil
 }
-func BuildPlans(operations [][]*http.Request) []execution.Plan {
-	var plans = make([]execution.Plan, 0)
+func BuildPlans(operations [][]*http.Request) execution.Plans {
+	var plans = make(execution.Plans, 0)
 	for _, operation := range operations {
 
-		plans = append(plans, execution.Plan{Steps: operation})
+		plans = append(plans, operation)
 	}
 	return plans
 }

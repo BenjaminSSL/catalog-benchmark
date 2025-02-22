@@ -1,16 +1,11 @@
-package scenario
+package plan
 
 import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/common"
-	"benchmark/internal/execution"
 	"fmt"
+	"net/http"
 )
-
-type ExecutionPlanFactoryOptions struct {
-	Threads int
-	Repeat  int
-}
 
 type BenchmarkType int
 
@@ -20,7 +15,7 @@ const (
 	UpdateCatalogBenchmark
 )
 
-func GetExecutionPlanFromBenchmarkID(catalog string, benchmarkID BenchmarkType, context common.RequestContext, threads int, repeat int) ([]execution.Plan, error) {
+func GetExecutionPlanFromBenchmarkID(catalog string, benchmarkID BenchmarkType, context common.RequestContext, threads int, repeat int) ([][]*http.Request, error) {
 	switch catalog {
 	case "polaris":
 		factory := polaris.NewExecutionPlanFactory(context, threads, repeat)

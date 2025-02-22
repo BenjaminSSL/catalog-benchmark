@@ -34,7 +34,12 @@ func (f *CatalogRequestFactory) DeleteCatalogRequest(params DeleteCatalogParams)
 }
 
 func (f *CatalogRequestFactory) UpdateCatalogRequest(params UpdateCatalogParams) (*http.Request, error) {
-	return nil, nil
+	operation := UpdateCatalog{
+		Name:          params.Name,
+		EntityVersion: params.Version,
+	}
+
+	return operation.Build(f.RequestContext)
 }
 
 func (f *CatalogRequestFactory) ListCatalogsRequest() (*http.Request, error) {

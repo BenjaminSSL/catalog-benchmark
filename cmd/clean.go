@@ -31,12 +31,12 @@ func newCleanCommand() *Command {
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
-			return runClean(config.Catalog, config.Entity)
+			return runClean(config.Catalog)
 		},
 	}
 }
 
-func runClean(catalog string, entity string) error {
+func runClean(catalog string) error {
 	context, err := common.GetRequestContextFromEnv(catalog)
 	if err != nil {
 		return err

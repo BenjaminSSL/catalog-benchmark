@@ -3,8 +3,8 @@ package cmd
 import (
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
+	"benchmark/internal/plan"
 
-	"benchmark/internal/scenario"
 	"flag"
 	"github.com/google/uuid"
 	"log"
@@ -46,13 +46,13 @@ func newBenchmarkCommand() *Command {
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
-			benchmarkType := scenario.BenchmarkType(config.BenchmarkID)
+			benchmarkType := plan.BenchmarkType(config.BenchmarkID)
 			return runBenchmark(config.ExperimentID, benchmarkType, config.Catalog, config.Threads, config.Repeat)
 		},
 	}
 }
 
-func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catalogName string, threads int, repeat int) error {
+func runBenchmark(experimentID string, benchmarkID plan.BenchmarkType, catalogName string, threads int, repeat int) error {
 	log.Printf("Starting experiment %s with benchmark scenario %d", experimentID, benchmarkID)
 
 	context, err := common.GetRequestContextFromEnv(catalogName)
@@ -60,7 +60,7 @@ func runBenchmark(experimentID string, benchmarkID scenario.BenchmarkType, catal
 		return err
 	}
 
-	executionPlans, err := scenario.GetExecutionPlanFromBenchmarkID(catalogName, benchmarkID, context, threads, repeat)
+	executionPlans, err := plan.GetExecutionPlanFromBenchmarkID(catalogName, benchmarkID, context, threads, repeat)
 	if err != nil {
 		log.Printf("Error getting execution scenario: %s\n", err)
 		return err
