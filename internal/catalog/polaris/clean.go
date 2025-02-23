@@ -17,8 +17,7 @@ func NewCleaner(context common.RequestContext) *CatalogCleaner {
 }
 
 func (c *CatalogCleaner) listCatalogsNames() ([]string, error) {
-	listCatalogs := ListCatalogs{}
-	req, err := listCatalogs.Build(c.context)
+	req, err := NewListCatalogsRequest(c.context)
 	if err != nil {
 		return nil, err
 	}
@@ -54,10 +53,10 @@ func (c *CatalogCleaner) CleanCatalog() error {
 	}
 
 	for _, catalogName := range catalogNames {
-		deleteParams := DeleteCatalog{
+		deleteParams := DeleteCatalogParams{
 			Name: catalogName,
 		}
-		request, err := deleteParams.Build(c.context)
+		request, err := NewDeleteCatalogRequest(c.context, deleteParams)
 		if err != nil {
 			return err
 		}

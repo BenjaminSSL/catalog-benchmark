@@ -7,27 +7,27 @@ import (
 	"net/http"
 )
 
-type ExecutionPlanFactory struct {
-	factory *CatalogRequestFactory
+type ExecutionPlanGenerator struct {
+	context common.RequestContext
 	threads int
 	repeat  int
 }
 
-func NewExecutionPlanFactory(context common.RequestContext, threads int, repeat int) *ExecutionPlanFactory {
+func NewExecutionPlanGenerator(context common.RequestContext, threads int, repeat int) *ExecutionPlanGenerator {
 
-	return &ExecutionPlanFactory{
-		factory: NewCatalogRequestFactory(context.Host, context.Token),
+	return &ExecutionPlanGenerator{
+		context: context,
 		threads: threads,
 		repeat:  repeat,
 	}
 }
 
-func (f *ExecutionPlanFactory) CreateCatalog() (execution.Plans, error) {
+func (f *ExecutionPlanGenerator) CreateCatalog() (execution.Plans, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
 			name := uuid.New().String()
-			req, err := f.factory.CreateCatalogRequest(CreateCatalogParams{Name: name})
+			req, err := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
 
 			if err != nil {
 				return nil, err
@@ -35,20 +35,20 @@ func (f *ExecutionPlanFactory) CreateCatalog() (execution.Plans, error) {
 			operations[thread] = append(operations[thread], req)
 		}
 	}
-	return BuildPlans(operations), nil
+	return operations, nil
 }
 
-func (f *ExecutionPlanFactory) CreateDeleteCatalog() (execution.Plans, error) {
+func (f *ExecutionPlanGenerator) CreateDeleteCatalog() (execution.Plans, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
 			name := uuid.New().String()
 
-			createRequest, err := f.factory.CreateCatalogRequest(CreateCatalogParams{Name: name})
+			createRequest, err := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
 			if err != nil {
 				return nil, err
 			}
-			deleteRequest, err := f.factory.DeleteCatalogRequest(DeleteCatalogParams{Name: name})
+			deleteRequest, err := NewDeleteCatalogRequest(f.context, DeleteCatalogParams{Name: name})
 			if err != nil {
 				return nil, err
 			}
@@ -58,20 +58,20 @@ func (f *ExecutionPlanFactory) CreateDeleteCatalog() (execution.Plans, error) {
 		}
 	}
 
-	return BuildPlans(operations), nil
+	return operations, nil
 }
 
-func (f *ExecutionPlanFactory) UpdateCatalog() (execution.Plans, error) {
+func (f *ExecutionPlanGenerator) UpdateCatalog() (execution.Plans, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		name := uuid.New().String()
-		createRequest, _ := f.factory.CreateCatalogRequest(CreateCatalogParams{Name: name})
+		createRequest, _ := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
 		operations[thread] = append(operations[thread], createRequest)
 		entityVersion := 1
 		for i := 0; i < f.repeat; i++ {
-			updateRequest, _ := f.factory.UpdateCatalogRequest(UpdateCatalogParams{
-				Name:    name,
-				Version: entityVersion,
+			updateRequest, _ := NewUpdateCatalogRequest(f.context, UpdateCatalogParams{
+				Name:          name,
+				EntityVersion: entityVersion,
 			})
 			operations[thread] = append(operations[thread], updateRequest)
 
@@ -79,13 +79,5 @@ func (f *ExecutionPlanFactory) UpdateCatalog() (execution.Plans, error) {
 		}
 	}
 
-	return BuildPlans(operations), nil
-}
-func BuildPlans(operations [][]*http.Request) execution.Plans {
-	var plans = make(execution.Plans, 0)
-	for _, operation := range operations {
-
-		plans = append(plans, operation)
-	}
-	return plans
+	return operations, nil
 }

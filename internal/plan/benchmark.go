@@ -2,6 +2,7 @@ package plan
 
 import (
 	"benchmark/internal/catalog/polaris"
+	"benchmark/internal/catalog/unity"
 	"benchmark/internal/common"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ const (
 func GetExecutionPlanFromBenchmarkID(catalog string, benchmarkID BenchmarkType, context common.RequestContext, threads int, repeat int) ([][]*http.Request, error) {
 	switch catalog {
 	case "polaris":
-		factory := polaris.NewExecutionPlanFactory(context, threads, repeat)
+		factory := polaris.NewExecutionPlanGenerator(context, threads, repeat)
 
 		switch benchmarkID {
 		case CreateCatalogBenchmark:
@@ -28,13 +29,19 @@ func GetExecutionPlanFromBenchmarkID(catalog string, benchmarkID BenchmarkType, 
 		case UpdateCatalogBenchmark:
 			return factory.UpdateCatalog()
 		default:
-			return nil, fmt.Errorf("unknown BenchmarkType: %v", benchmarkID)
+			return nil, fmt.Errorf("unknown benchmark for catalog: %s", catalog)
 		}
 	case "unity":
+		factory := unity.NewExecutionPlanGenerator(context, threads, repeat)
 		switch benchmarkID {
+		case CreateCatalogBenchmark:
+			return factory.CreateCatalog()
+		default:
+			return nil, fmt.Errorf("unknown benchmark for catalog: %s", catalog)
+
 		}
 	}
 
-	return nil, fmt.Errorf("unknown BenchmarkType: %v", benchmarkID)
+	return nil, fmt.Errorf("unknown benchmark for catalog: %s", catalog)
 
 }

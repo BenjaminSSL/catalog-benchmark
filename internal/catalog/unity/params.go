@@ -1,4 +1,4 @@
-package polaris
+package unity
 
 type CreateCatalogParams struct {
 	Name string
@@ -9,8 +9,8 @@ type DeleteCatalogParams struct {
 }
 
 type UpdateCatalogParams struct {
-	Name          string
-	EntityVersion int
+	Name    string
+	Version int
 }
 
 type CreateSchemaParams struct {

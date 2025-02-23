@@ -7,18 +7,13 @@ import (
 	"net/http"
 )
 
-type CreateCatalog struct {
-	Name string
-}
-
-func (op *CreateCatalog) Build(context common.RequestContext) (*http.Request, error) {
-
+func NewCreateCatalogRequest(context common.RequestContext, params CreateCatalogParams) (*http.Request, error) {
 	body := CreateCatalogBody{
 		Catalog: Catalog{
 			EntityType: "INTERNAL",
-			Name:       op.Name,
+			Name:       params.Name,
 			Properties: CatalogProperties{
-				DefaultBaseLocation: fmt.Sprintf("/%s/", op.Name),
+				DefaultBaseLocation: fmt.Sprintf("/%s/", params.Name),
 			},
 			StorageConfigInfo: CatalogStorageConfigInfo{
 				StorageType: "FILE",
@@ -34,32 +29,20 @@ func (op *CreateCatalog) Build(context common.RequestContext) (*http.Request, er
 	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/management/v1/catalogs").SetJSONBody(jsonBody).Build()
 }
 
-type DeleteCatalog struct {
-	Name string
-}
-
-func (op *DeleteCatalog) Build(context common.RequestContext) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", op.Name)
+func NewDeleteCatalogRequest(context common.RequestContext, params DeleteCatalogParams) (*http.Request, error) {
+	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", params.Name)
 	return common.NewRequestBuilder(context).SetMethod("DELETE").SetEndpoint(endpoint).Build()
 
 }
 
-type ListCatalogs struct {
-}
-
-func (op *ListCatalogs) Build(context common.RequestContext) (*http.Request, error) {
+func NewListCatalogsRequest(context common.RequestContext) (*http.Request, error) {
 	return common.NewRequestBuilder(context).SetEndpoint("/api/management/v1/catalogs").Build()
 }
 
-type UpdateCatalog struct {
-	Name          string
-	EntityVersion int
-}
-
-func (op *UpdateCatalog) Build(context common.RequestContext) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", op.Name)
+func NewUpdateCatalogRequest(context common.RequestContext, params UpdateCatalogParams) (*http.Request, error) {
+	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", params.Name)
 	body := UpdateCatalogBody{
-		CurrentEntityVersion: op.EntityVersion,
+		CurrentEntityVersion: params.EntityVersion,
 		Properties:           CatalogProperties{},
 		StorageConfigInfo: CatalogStorageConfigInfo{
 			StorageType: "FILE",
@@ -77,17 +60,13 @@ func (op *UpdateCatalog) Build(context common.RequestContext) (*http.Request, er
 
 }
 
-type CreateSchema struct {
-	Name string
-}
-
-func (op *CreateSchema) Build(context common.RequestContext) (*http.Request, error) {
+func NewCreateSchemaRequest(context common.RequestContext, params CreateSchemaParams) (*http.Request, error) {
 	body := CreateCatalogBody{
 		Catalog: Catalog{
 			EntityType: "INTERNAL",
-			Name:       op.Name,
+			Name:       params.Name,
 			Properties: CatalogProperties{
-				DefaultBaseLocation: fmt.Sprintf("/%s/", op.Name),
+				DefaultBaseLocation: fmt.Sprintf("/%s/", params.Name),
 			},
 			StorageConfigInfo: CatalogStorageConfigInfo{
 				StorageType: "FILE",

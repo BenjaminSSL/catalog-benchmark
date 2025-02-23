@@ -36,7 +36,7 @@ func newBenchmarkCommand() *Command {
 
 	flags.StringVar(&config.ExperimentID, "experimentID", config.ExperimentID, "Experiment ID")
 	flags.IntVar(&config.BenchmarkID, "benchmarkID", config.BenchmarkID, "Benchmark ID")
-	flags.StringVar(&config.Catalog, "catalog-refactor", config.Catalog, "Catalog")
+	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 	flags.IntVar(&config.Repeat, "repeat", config.Repeat, "Repeats")
 
