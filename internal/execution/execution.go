@@ -25,7 +25,7 @@ func NewExecutionEngine(ExperimentID string, plans Plans) *Engine {
 	}
 }
 
-func (engine *Engine) Run() {
+func (engine *Engine) Run() error {
 	for i := range engine.Plans {
 		engine.wg.Add(1)
 		go func(id int, executionPlan []*http.Request) {
@@ -70,5 +70,5 @@ func (engine *Engine) Run() {
 	}
 
 	engine.wg.Wait()
-
+	return nil
 }

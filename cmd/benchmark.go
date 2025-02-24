@@ -5,6 +5,9 @@ import (
 	"benchmark/internal/evaluate"
 	"benchmark/internal/execution"
 	"benchmark/internal/plan"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"flag"
 	"github.com/google/uuid"
@@ -74,20 +77,39 @@ func runBenchmark(experimentID string, benchmarkID common.BenchmarkType, catalog
 		return err
 	}
 
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	done := make(chan error)
+
 	engine := execution.NewExecutionEngine(experimentID, executionPlans)
 	startTime := time.Now()
-	engine.Run()
 
-	elapsedTime := time.Since(startTime)
+	go func() {
+		done <- engine.Run()
+	}()
 
-	log.Printf("Finished in %f seconds experiment %s\n", elapsedTime.Seconds(), experimentID)
+	select {
+	case err = <-done:
+		if err != nil {
+			return err
+		}
 
-	err = evaluate.BenchmarkExecution(context, experiment)
-	if err != nil {
-		return err
+		elapsed := time.Since(startTime)
+
+		log.Printf("Finished in %f seconds experiment %s\n", elapsed.Seconds(), experimentID)
+
+		err = evaluate.BenchmarkExecution(context, experiment)
+		if err != nil {
+			return err
+		}
+
+		return common.MergeLogs("./logs/tmp", experimentID)
+
+	case sig := <-quit:
+		log.Printf("Received signal \"%v\", shutting down...", sig)
+		log.Printf("Stopping experiment %s with benchmark scenario %d\n", experimentID, benchmarkID)
+		return nil
 	}
 
-	err = common.MergeLogs("./logs/tmp", experimentID)
-
-	return nil
 }
