@@ -38,8 +38,8 @@ func newBenchmarkCommand() *Command {
 		Repeat:       1,
 	}
 
-	flags.StringVar(&config.ExperimentID, "experimentID", config.ExperimentID, "Experiment ID")
-	flags.IntVar(&config.BenchmarkID, "benchmarkID", config.BenchmarkID, "Benchmark ID")
+	flags.StringVar(&config.ExperimentID, "experiment-id", config.ExperimentID, "Experiment ID")
+	flags.IntVar(&config.BenchmarkID, "benchmark-id", config.BenchmarkID, "Benchmark ID")
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 	flags.IntVar(&config.Repeat, "repeat", config.Repeat, "Repeats")
