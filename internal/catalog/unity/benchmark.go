@@ -22,7 +22,7 @@ func NewExecutionPlanGenerator(context common.RequestContext, threads int, repea
 	}
 }
 
-func (f *ExecutionPlanGenerator) CreateCatalog() (execution.Plans, error) {
+func (f *ExecutionPlanGenerator) CreateCatalog() (*execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
@@ -35,5 +35,7 @@ func (f *ExecutionPlanGenerator) CreateCatalog() (execution.Plans, error) {
 			operations[thread] = append(operations[thread], req)
 		}
 	}
-	return operations, nil
+	return &execution.Plan{
+		Execution: operations,
+	}, nil
 }

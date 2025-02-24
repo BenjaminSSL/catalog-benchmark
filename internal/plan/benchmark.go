@@ -4,11 +4,11 @@ import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/catalog/unity"
 	"benchmark/internal/common"
+	"benchmark/internal/execution"
 	"fmt"
-	"net/http"
 )
 
-func GenerateExecutionPlan(context common.RequestContext, experiment common.Experiment) ([][]*http.Request, error) {
+func GenerateExecutionPlan(context common.RequestContext, experiment common.Experiment) (*execution.Plan, error) {
 	switch experiment.Catalog {
 	case "polaris":
 		generator := polaris.NewExecutionPlanGenerator(context, experiment.Threads, experiment.Repeat)

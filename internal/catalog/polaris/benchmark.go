@@ -22,7 +22,7 @@ func NewExecutionPlanGenerator(context common.RequestContext, threads int, repea
 	}
 }
 
-func (f *ExecutionPlanGenerator) CreateCatalog() (execution.Plans, error) {
+func (f *ExecutionPlanGenerator) CreateCatalog() (*execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
@@ -35,10 +35,12 @@ func (f *ExecutionPlanGenerator) CreateCatalog() (execution.Plans, error) {
 			operations[thread] = append(operations[thread], req)
 		}
 	}
-	return operations, nil
+	return &execution.Plan{
+		Execution: operations,
+	}, nil
 }
 
-func (f *ExecutionPlanGenerator) CreateDeleteCatalog() (execution.Plans, error) {
+func (f *ExecutionPlanGenerator) CreateDeleteCatalog() (*execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
@@ -58,14 +60,17 @@ func (f *ExecutionPlanGenerator) CreateDeleteCatalog() (execution.Plans, error) 
 		}
 	}
 
-	return operations, nil
+	return &execution.Plan{Execution: operations}, nil
 }
 
-func (f *ExecutionPlanGenerator) UpdateCatalog() (execution.Plans, error) {
+func (f *ExecutionPlanGenerator) UpdateCatalog() (*execution.Plan, error) {
+	setup := make([]*http.Request, 0)
 	operations := make([][]*http.Request, f.threads)
+
+	name := uuid.New().String()
+	createRequest, _ := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
+	setup = append(setup, createRequest)
 	for thread := 0; thread < f.threads; thread++ {
-		name := uuid.New().String()
-		createRequest, _ := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
 		operations[thread] = append(operations[thread], createRequest)
 		entityVersion := 1
 		for i := 0; i < f.repeat; i++ {
@@ -79,5 +84,8 @@ func (f *ExecutionPlanGenerator) UpdateCatalog() (execution.Plans, error) {
 		}
 	}
 
-	return operations, nil
+	return &execution.Plan{
+		Setup:     setup,
+		Execution: operations,
+	}, nil
 }
