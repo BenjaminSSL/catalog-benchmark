@@ -2,8 +2,6 @@ package polaris
 
 import (
 	"benchmark/internal/common"
-	"encoding/json"
-	"io"
 	"net/http"
 )
 
@@ -16,43 +14,18 @@ func NewCleaner(context common.RequestContext) *CatalogCleaner {
 	return &CatalogCleaner{context: context, client: &http.Client{}}
 }
 
-func (c *CatalogCleaner) listCatalogsNames() ([]string, error) {
-	req, err := NewListCatalogsRequest(c.context)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	var result ListCatalogsResponse
-	if err = json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-
-	names := make([]string, 0, len(result.Catalogs))
-
-	for _, catalog := range result.Catalogs {
-		names = append(names, catalog.Name)
-	}
-
-	return names, nil
-}
-
 func (c *CatalogCleaner) CleanCatalog() error {
-	catalogNames, err := c.listCatalogsNames()
+	catalogs, err := ListCatalogs(c.context)
 	if err != nil {
 		return err
 	}
 
-	for _, catalogName := range catalogNames {
+	names := make([]string, len(catalogs))
+	for i, catalog := range catalogs {
+		names[i] = catalog.Name
+	}
+
+	for _, catalogName := range names {
 		deleteParams := DeleteCatalogParams{
 			Name: catalogName,
 		}

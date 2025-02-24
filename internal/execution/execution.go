@@ -29,7 +29,7 @@ func (engine *Engine) Run() {
 	for i := range engine.Plans {
 		engine.wg.Add(1)
 		go func(id int, executionPlan []*http.Request) {
-			logger, _ := common.NewRoutineBatchLogger("./logs", engine.ExperimentID, i, 100)
+			logger, _ := common.NewRoutineBatchLogger("./logs/tmp", engine.ExperimentID, i, 100)
 			client := &http.Client{Timeout: time.Second * 30}
 
 			defer engine.wg.Done()
@@ -40,7 +40,7 @@ func (engine *Engine) Run() {
 
 				resp, err := client.Do(task)
 				if err != nil {
-					log.Printf("failed to execute step %d: %v", taskID, err)
+					logger.Log("ERROR", fmt.Sprintf("failed to execute step"), err)
 					continue
 				}
 

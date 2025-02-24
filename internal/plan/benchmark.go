@@ -8,40 +8,32 @@ import (
 	"net/http"
 )
 
-type BenchmarkType int
-
-const (
-	CreateCatalogBenchmark BenchmarkType = iota + 1
-	CreateDeleteCatalogBenchmark
-	UpdateCatalogBenchmark
-)
-
-func GetExecutionPlanFromBenchmarkID(catalog string, benchmarkID BenchmarkType, context common.RequestContext, threads int, repeat int) ([][]*http.Request, error) {
-	switch catalog {
+func GenerateExecutionPlan(context common.RequestContext, experiment common.Experiment) ([][]*http.Request, error) {
+	switch experiment.Catalog {
 	case "polaris":
-		factory := polaris.NewExecutionPlanGenerator(context, threads, repeat)
+		generator := polaris.NewExecutionPlanGenerator(context, experiment.Threads, experiment.Repeat)
 
-		switch benchmarkID {
-		case CreateCatalogBenchmark:
-			return factory.CreateCatalog()
-		case CreateDeleteCatalogBenchmark:
-			return factory.CreateDeleteCatalog()
-		case UpdateCatalogBenchmark:
-			return factory.UpdateCatalog()
+		switch experiment.BenchmarkID {
+		case common.CreateCatalogBenchmark:
+			return generator.CreateCatalog()
+		case common.CreateDeleteCatalogBenchmark:
+			return generator.CreateDeleteCatalog()
+		case common.UpdateCatalogBenchmark:
+			return generator.UpdateCatalog()
 		default:
-			return nil, fmt.Errorf("unknown benchmark for catalog: %s", catalog)
+			return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 		}
 	case "unity":
-		factory := unity.NewExecutionPlanGenerator(context, threads, repeat)
-		switch benchmarkID {
-		case CreateCatalogBenchmark:
-			return factory.CreateCatalog()
+		generator := unity.NewExecutionPlanGenerator(context, experiment.Threads, experiment.Repeat)
+		switch experiment.BenchmarkID {
+		case common.CreateCatalogBenchmark:
+			return generator.CreateCatalog()
 		default:
-			return nil, fmt.Errorf("unknown benchmark for catalog: %s", catalog)
+			return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 
 		}
 	}
 
-	return nil, fmt.Errorf("unknown benchmark for catalog: %s", catalog)
+	return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"benchmark/internal/common"
+	"benchmark/internal/evaluate"
 	"benchmark/internal/execution"
 	"benchmark/internal/plan"
 
@@ -46,13 +47,20 @@ func newBenchmarkCommand() *Command {
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
-			benchmarkType := plan.BenchmarkType(config.BenchmarkID)
+			benchmarkType := common.BenchmarkType(config.BenchmarkID)
 			return runBenchmark(config.ExperimentID, benchmarkType, config.Catalog, config.Threads, config.Repeat)
 		},
 	}
 }
 
-func runBenchmark(experimentID string, benchmarkID plan.BenchmarkType, catalogName string, threads int, repeat int) error {
+func runBenchmark(experimentID string, benchmarkID common.BenchmarkType, catalogName string, threads int, repeat int) error {
+	experiment := common.Experiment{
+		ID:          experimentID,
+		BenchmarkID: benchmarkID,
+		Catalog:     catalogName,
+		Threads:     threads,
+		Repeat:      repeat,
+	}
 	log.Printf("Starting experiment %s with benchmark scenario %d", experimentID, benchmarkID)
 
 	context, err := common.GetRequestContextFromEnv(catalogName)
@@ -60,7 +68,7 @@ func runBenchmark(experimentID string, benchmarkID plan.BenchmarkType, catalogNa
 		return err
 	}
 
-	executionPlans, err := plan.GetExecutionPlanFromBenchmarkID(catalogName, benchmarkID, context, threads, repeat)
+	executionPlans, err := plan.GenerateExecutionPlan(context, experiment)
 	if err != nil {
 		log.Printf("Error getting execution scenario: %s\n", err)
 		return err
@@ -73,6 +81,13 @@ func runBenchmark(experimentID string, benchmarkID plan.BenchmarkType, catalogNa
 	elapsedTime := time.Since(startTime)
 
 	log.Printf("Finished in %f seconds experiment %s\n", elapsedTime.Seconds(), experimentID)
+
+	err = evaluate.BenchmarkExecution(context, experiment)
+	if err != nil {
+		return err
+	}
+
+	err = common.MergeLogs("./logs/tmp", experimentID)
 
 	return nil
 }

@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -90,4 +91,45 @@ func (l *RoutineBatchLogger) Close() {
 	l.Flush()
 	l.file.Close()
 
+}
+
+func MergeLogs(logDir string, experimentID string) error {
+	// Finds all the file of the jsonl type
+	files, err := filepath.Glob(filepath.Join(logDir, "*.jsonl"))
+	if err != nil {
+		return err
+	}
+
+	mergedFilename := filepath.Join("./logs", fmt.Sprintf("%s.jsonl", experimentID))
+	mergedFile, err := os.OpenFile(mergedFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	defer mergedFile.Close()
+
+	for _, file := range files {
+
+		logFile, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(mergedFile, logFile)
+		if err != nil {
+			return err
+		}
+
+		err = logFile.Close()
+		if err != nil {
+			return err
+		}
+
+		err = os.Remove(file)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
