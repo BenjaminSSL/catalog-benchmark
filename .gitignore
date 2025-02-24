@@ -19,3 +19,6 @@ go.work.sum
 logs/
 
 .DS_Store
+
+benchmark.db
+benchmark.db.*

@@ -20,14 +20,14 @@ func newCleanCommand() *Command {
 	}{
 		// Default values
 		Catalog: "polaris",
-		Entity:  "catalog-refactor",
+		Entity:  "catalog",
 	}
 
-	flags.StringVar(&config.Catalog, "catalog-refactor", config.Catalog, "Catalog")
+	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.StringVar(&config.Entity, "entity", config.Entity, "Entity")
 	return &Command{
 		Name:        "clean",
-		Description: "Clean up a specific entity in the catalog-refactor",
+		Description: "Clean up a specific entity in the catalog",
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
