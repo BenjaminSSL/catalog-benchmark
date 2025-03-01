@@ -9,8 +9,7 @@ type DeleteCatalogParams struct {
 }
 
 type UpdateCatalogParams struct {
-	Name    string
-	Version int
+	Name string
 }
 
 type CreateSchemaParams struct {

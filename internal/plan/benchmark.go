@@ -30,6 +30,10 @@ func GenerateExecutionPlan(context common.RequestContext, experiment common.Expe
 		switch experiment.BenchmarkID {
 		case common.CreateCatalogBenchmark:
 			return generator.CreateCatalog()
+		case common.CreateDeleteCatalogBenchmark:
+			return generator.CreateDeleteCatalog()
+		case common.UpdateCatalogBenchmark:
+			return generator.UpdateCatalog()
 		default:
 			return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 
