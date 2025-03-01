@@ -22,3 +22,4 @@ logs/
 
 benchmark.db
 benchmark.db.*
+database/
