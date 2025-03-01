@@ -6,6 +6,7 @@ import (
 	"benchmark/internal/common"
 	"benchmark/internal/execution"
 	"fmt"
+	"log"
 )
 
 func GenerateExecutionPlan(context common.RequestContext, experiment common.Experiment) (*execution.Plan, error) {
@@ -19,6 +20,7 @@ func GenerateExecutionPlan(context common.RequestContext, experiment common.Expe
 		case common.CreateDeleteCatalogBenchmark:
 			return generator.CreateDeleteCatalog()
 		case common.UpdateCatalogBenchmark:
+			log.Printf("Updating catalog benchmark")
 			return generator.UpdateCatalog()
 		default:
 			return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)

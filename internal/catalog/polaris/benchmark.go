@@ -71,7 +71,6 @@ func (f *ExecutionPlanGenerator) UpdateCatalog() (*execution.Plan, error) {
 	createRequest, _ := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
 	setup = append(setup, createRequest)
 	for thread := 0; thread < f.threads; thread++ {
-		operations[thread] = append(operations[thread], createRequest)
 		entityVersion := 1
 		for i := 0; i < f.repeat; i++ {
 			updateRequest, _ := NewUpdateCatalogRequest(f.context, UpdateCatalogParams{

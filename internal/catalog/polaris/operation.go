@@ -56,8 +56,6 @@ func NewUpdateCatalogRequest(context common.RequestContext, params UpdateCatalog
 
 	return common.NewRequestBuilder(context).SetMethod("PUT").SetEndpoint(endpoint).SetJSONBody(jsonBody).Build()
 
-	return nil, nil
-
 }
 
 func NewCreateSchemaRequest(context common.RequestContext, params CreateSchemaParams) (*http.Request, error) {

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"benchmark/internal/common"
-	"benchmark/internal/evaluate"
 	"benchmark/internal/execution"
 	"benchmark/internal/plan"
 	"os"
@@ -99,10 +98,10 @@ func runBenchmark(experimentID string, benchmarkID common.BenchmarkType, catalog
 
 		log.Printf("Finished in %f seconds experiment %s\n", elapsed.Seconds(), experimentID)
 
-		err = evaluate.BenchmarkExecution(context, experiment)
-		if err != nil {
-			return err
-		}
+		//err = evaluate.BenchmarkExecution(context, experiment)
+		//if err != nil {
+		//	return err
+		//}
 
 		return common.MergeLogs("./logs/tmp", experimentID)
 

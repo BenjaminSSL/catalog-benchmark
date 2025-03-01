@@ -60,15 +60,15 @@ func (engine *Engine) Run() error {
 					log.Printf("failed to read response body %d: %v", taskID, err)
 					continue
 				}
+				statusCode := resp.StatusCode
 
 				logData := map[string]interface{}{
 					"task_id":       taskID,
-					"status_code":   resp.StatusCode,
+					"status_code":   statusCode,
 					"response_body": string(body),
 				}
 
-				statusCode := resp.StatusCode
-				if statusCode != 0 {
+				if statusCode >= 200 && statusCode <= 299 {
 					logger.Log("INFO", fmt.Sprintf("Finished step %d", taskID), logData)
 				} else {
 					logger.Log("ERROR", fmt.Sprintf("Step %d has failed", taskID), logData)
