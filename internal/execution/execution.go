@@ -46,7 +46,7 @@ func (engine *Engine) Run() error {
 			defer logger.Close()
 
 			for taskID, task := range executionPlan {
-				logger.Log("INFO", taskID, fmt.Sprintf("Starting step %d", taskID), nil)
+				//logger.Log("INFO", taskID, fmt.Sprintf("Starting step %d", taskID), nil)
 
 				resp, err := client.Do(task)
 				if err != nil {
