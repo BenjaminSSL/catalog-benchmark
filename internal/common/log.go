@@ -55,7 +55,7 @@ func (l *RoutineBatchLogger) Log(level string, message string, data any) {
 		Level:        level,
 		ExperimentID: l.ExperimentID,
 		ThreadID:     l.TheadID,
-		Timestamp:    time.Now().UTC().Format(time.RFC3339),
+		Timestamp:    time.Now().UTC().Format(time.RFC3339Nano),
 		Message:      message,
 		Data:         data,
 	})
