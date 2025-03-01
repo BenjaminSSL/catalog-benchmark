@@ -16,3 +16,8 @@ type CreateSchemaParams struct {
 	Name   string
 	Prefix string
 }
+
+type ListCatalogsParams struct {
+	PageToken  string
+	MaxResults int
+}

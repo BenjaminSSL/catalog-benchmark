@@ -45,6 +45,7 @@ type RequestBuilder struct {
 	method   string
 	endpoint string
 	body     []byte
+	query    map[string]string
 	headers  http.Header
 }
 
@@ -53,6 +54,7 @@ func NewRequestBuilder(context RequestContext) *RequestBuilder {
 		context: context,
 		method:  "GET",
 		headers: make(http.Header),
+		query:   make(map[string]string),
 	}
 }
 
@@ -71,13 +73,34 @@ func (b *RequestBuilder) AddHeader(key string, value string) *RequestBuilder {
 	return b
 }
 
+func (b *RequestBuilder) AddQueryParam(key string, value string) *RequestBuilder {
+	b.query[key] = value
+	return b
+}
+
 func (b *RequestBuilder) SetJSONBody(body []byte) *RequestBuilder {
 	b.body = body
 	return b.AddHeader("Content-Type", "application/json")
 }
 
+func (b *RequestBuilder) buildQuery() string {
+	query := ""
+	for key, value := range b.query {
+		if query == "" {
+			query = fmt.Sprintf("%s=%s", key, value)
+		} else {
+			query = fmt.Sprintf("%s&%s=%s", query, key, value)
+		}
+	}
+	return query
+}
+
 func (b *RequestBuilder) Build() (*http.Request, error) {
 	url := fmt.Sprintf("http://%s%s", b.context.Host, path.Join("/", b.endpoint))
+
+	if len(b.query) > 0 {
+		url = url + "?" + b.buildQuery()
+	}
 
 	req, err := http.NewRequest(b.method, url, bytes.NewBuffer(b.body))
 	if err != nil {

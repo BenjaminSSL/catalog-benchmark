@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"benchmark/internal/catalog/polaris"
+	"benchmark/internal/catalog/unity"
 	"benchmark/internal/common"
 	"flag"
 )
@@ -31,21 +32,35 @@ func newCleanCommand() *Command {
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
-			return runClean(config.Catalog)
+			return runClean(config.Catalog, config.Entity)
 		},
 	}
 }
 
-func runClean(catalog string) error {
+func runClean(catalog string, entity string) error {
 	context, err := common.GetRequestContextFromEnv(catalog)
 	if err != nil {
 		return err
 	}
 
-	cleaner := polaris.NewCleaner(context)
-
-	if err = cleaner.CleanCatalog(); err != nil {
-		return err
+	switch catalog {
+	case "polaris":
+		cleaner := polaris.NewCleaner(context)
+		switch entity {
+		case "catalog":
+			if err = cleaner.CleanCatalog(); err != nil {
+				return err
+			}
+		}
+	case "unity":
+		cleaner := unity.NewCleaner(context)
+		switch entity {
+		case "catalog":
+			if err = cleaner.CleanCatalog(); err != nil {
+				return err
+			}
+		}
 	}
+
 	return nil
 }

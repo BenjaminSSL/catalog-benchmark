@@ -41,3 +41,17 @@ func NewUpdateCatalogRequest(context common.RequestContext, params UpdateCatalog
 
 	return common.NewRequestBuilder(context).SetMethod("PATCH").SetEndpoint(endpoint).SetJSONBody(jsonBody).Build()
 }
+
+func NewListCatalogsRequest(context common.RequestContext, params ListCatalogsParams) (*http.Request, error) {
+
+	builder := common.NewRequestBuilder(context).SetMethod("GET").SetEndpoint("/api/2.1/unity-catalog/catalogs")
+
+	if params.PageToken != "" {
+		builder.AddQueryParam("page_token", params.PageToken)
+	}
+	if params.MaxResults != 0 {
+		builder.AddQueryParam("max_results", strconv.Itoa(params.MaxResults))
+	}
+
+	return builder.Build()
+}
