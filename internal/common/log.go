@@ -22,6 +22,7 @@ type LogEntry struct {
 	Level        string `json:"level"`
 	ExperimentID string `json:"experiment_id"`
 	ThreadID     int    `json:"thread_id"`
+	StepID       int    `json:"step_id"`
 	Timestamp    string `json:"timestamp"`
 	Message      string `json:"message"`
 	Data         any    `json:"data"`
@@ -50,11 +51,12 @@ func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batc
 
 }
 
-func (l *RoutineBatchLogger) Log(level string, message string, data any) {
+func (l *RoutineBatchLogger) Log(level string, stepID int, message string, data any) {
 	l.buffer = append(l.buffer, LogEntry{
 		Level:        level,
 		ExperimentID: l.ExperimentID,
 		ThreadID:     l.TheadID,
+		StepID:       stepID,
 		Timestamp:    time.Now().UTC().Format(time.RFC3339Nano),
 		Message:      message,
 		Data:         data,

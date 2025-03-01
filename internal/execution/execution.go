@@ -46,11 +46,11 @@ func (engine *Engine) Run() error {
 			defer logger.Close()
 
 			for taskID, task := range executionPlan {
-				logger.Log("INFO", fmt.Sprintf("Starting step %d", taskID), nil)
+				logger.Log("INFO", taskID, fmt.Sprintf("Starting step %d", taskID), nil)
 
 				resp, err := client.Do(task)
 				if err != nil {
-					logger.Log("ERROR", fmt.Sprintf("failed to execute step"), err)
+					logger.Log("ERROR", taskID, fmt.Sprintf("failed to execute step"), err)
 					continue
 				}
 
@@ -69,9 +69,9 @@ func (engine *Engine) Run() error {
 				}
 
 				if statusCode >= 200 && statusCode <= 299 {
-					logger.Log("INFO", fmt.Sprintf("Finished step %d", taskID), logData)
+					logger.Log("INFO", taskID, fmt.Sprintf("Finished step %d", taskID), logData)
 				} else {
-					logger.Log("ERROR", fmt.Sprintf("Step %d has failed", taskID), logData)
+					logger.Log("ERROR", taskID, fmt.Sprintf("Step %d has failed", taskID), logData)
 				}
 
 			}
