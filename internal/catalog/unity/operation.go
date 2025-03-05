@@ -19,16 +19,14 @@ func NewCreateCatalogRequest(context common.RequestContext, name string) (*http.
 		panic(err)
 	}
 
-	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/2.1/unity-catalog/catalogs").SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build()
 }
 
 func NewDeleteCatalogRequest(context common.RequestContext, name string) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/2.1/unity-catalog/catalogs/%s", name)
-	return common.NewRequestBuilder(context).SetMethod("DELETE").SetEndpoint(endpoint).Build()
+	return common.NewRequestBuilder(context).SetMethod("DELETE").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).Build()
 }
 
 func NewUpdateCatalogRequest(context common.RequestContext, name string) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/2.1/unity-catalog/catalogs/%s", name)
 
 	body := UpdateCatalogBody{
 		Comment: strconv.Itoa(rand.IntN(100)),
@@ -39,12 +37,12 @@ func NewUpdateCatalogRequest(context common.RequestContext, name string) (*http.
 		panic(err)
 	}
 
-	return common.NewRequestBuilder(context).SetMethod("PATCH").SetEndpoint(endpoint).SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder(context).SetMethod("PATCH").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).SetJSONBody(jsonBody).Build()
 }
 
 func NewListCatalogsRequest(context common.RequestContext, pageToken string, maxResults int) (*http.Request, error) {
 
-	builder := common.NewRequestBuilder(context).SetMethod("GET").SetEndpoint("/api/2.1/unity-catalog/catalogs")
+	builder := common.NewRequestBuilder(context).SetMethod("GET").SetEndpoint("/catalogs")
 
 	if pageToken != "" {
 		builder.AddQueryParam("page_token", pageToken)

@@ -26,21 +26,19 @@ func NewCreateCatalogRequest(context common.RequestContext, name string) (*http.
 		return nil, err
 	}
 
-	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/management/v1/catalogs").SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build()
 }
 
 func NewDeleteCatalogRequest(context common.RequestContext, name string) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", name)
-	return common.NewRequestBuilder(context).SetMethod("DELETE").SetEndpoint(endpoint).Build()
+	return common.NewRequestBuilder(context).SetMethod("DELETE").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build()
 
 }
 
 func NewListCatalogsRequest(context common.RequestContext) (*http.Request, error) {
-	return common.NewRequestBuilder(context).SetEndpoint("/api/management/v1/catalogs").Build()
+	return common.NewRequestBuilder(context).SetEndpoint("/catalogs").Build()
 }
 
 func NewUpdateCatalogRequest(context common.RequestContext, name string, entityVersion int) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/management/v1/catalogs/%s", name)
 	body := UpdateCatalogBody{
 		CurrentEntityVersion: entityVersion,
 		Properties:           CatalogProperties{},
@@ -54,8 +52,11 @@ func NewUpdateCatalogRequest(context common.RequestContext, name string, entityV
 		return nil, err
 	}
 
-	return common.NewRequestBuilder(context).SetMethod("PUT").SetEndpoint(endpoint).SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder(context).SetMethod("PUT").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).SetJSONBody(jsonBody).Build()
+}
 
+func NewListPrincipals(context common.RequestContext) (*http.Request, error) {
+	return common.NewRequestBuilder(context).SetEndpoint("principals").Build()
 }
 
 func NewCreateSchemaRequest(context common.RequestContext, name string, prefix string) (*http.Request, error) {
@@ -77,5 +78,5 @@ func NewCreateSchemaRequest(context common.RequestContext, name string, prefix s
 		panic(err)
 	}
 
-	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/management/v1/catalogs").SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build()
 }

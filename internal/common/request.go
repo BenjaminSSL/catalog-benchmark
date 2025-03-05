@@ -15,16 +15,19 @@ type RequestParams interface {
 type RequestContext struct {
 	Host  string
 	Token string
+	Path  string // The default API path to be used when no specific endpoint is provided
 }
 
 func GetRequestContextFromEnv(catalogName string) (RequestContext, error) {
 	var host string
 	var token string
+	var defaultPath string
 	var err error
 
 	// Set up the catalogName and their factory
 	if catalogName == "polaris" {
 		host = os.Getenv("POLARIS_HOST")
+		defaultPath = os.Getenv("POLARIS_PATH")
 
 		token, err = FetchPolarisToken(host)
 		if err != nil {
@@ -35,9 +38,10 @@ func GetRequestContextFromEnv(catalogName string) (RequestContext, error) {
 
 	} else if catalogName == "unity" {
 		host = os.Getenv("UNITY_HOST")
+		defaultPath = os.Getenv("UNITY_PATH")
 	}
 
-	return RequestContext{host, token}, nil
+	return RequestContext{host, token, defaultPath}, nil
 }
 
 type RequestBuilder struct {
@@ -96,10 +100,13 @@ func (b *RequestBuilder) buildQuery() string {
 }
 
 func (b *RequestBuilder) Build() (*http.Request, error) {
-	url := fmt.Sprintf("http://%s%s", b.context.Host, path.Join("/", b.endpoint))
+	baseURL := fmt.Sprintf("http://%s%s", b.context.Host, path.Clean(b.context.Path))
+	endpoint := path.Join("/", b.endpoint)
+
+	url := fmt.Sprintf("%s%s", baseURL, endpoint)
 
 	if len(b.query) > 0 {
-		url = url + "?" + b.buildQuery()
+		endpoint = url + "?" + b.buildQuery()
 	}
 
 	req, err := http.NewRequest(b.method, url, bytes.NewBuffer(b.body))

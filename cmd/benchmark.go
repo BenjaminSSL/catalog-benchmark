@@ -6,14 +6,13 @@ import (
 	"benchmark/internal/common"
 	"benchmark/internal/evaluate"
 	"benchmark/internal/execution"
+	"flag"
 	"fmt"
+	"github.com/google/uuid"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"flag"
-	"github.com/google/uuid"
-	"log"
 	"time"
 )
 
