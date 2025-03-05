@@ -27,7 +27,7 @@ func (f *ExecutionPlanGenerator) CreateCatalog() (*execution.Plan, error) {
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
 			name := uuid.New().String()
-			req, err := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
+			req, err := NewCreateCatalogRequest(f.context, name)
 
 			if err != nil {
 				return nil, err
@@ -46,11 +46,11 @@ func (f *ExecutionPlanGenerator) CreateDeleteCatalog() (*execution.Plan, error) 
 		for i := 0; i < f.repeat; i++ {
 			name := uuid.New().String()
 
-			createRequest, err := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
+			createRequest, err := NewCreateCatalogRequest(f.context, name)
 			if err != nil {
 				return nil, err
 			}
-			deleteRequest, err := NewDeleteCatalogRequest(f.context, DeleteCatalogParams{Name: name})
+			deleteRequest, err := NewDeleteCatalogRequest(f.context, name)
 			if err != nil {
 				return nil, err
 			}
@@ -68,15 +68,12 @@ func (f *ExecutionPlanGenerator) UpdateCatalog() (*execution.Plan, error) {
 	operations := make([][]*http.Request, f.threads)
 
 	name := uuid.New().String()
-	createRequest, _ := NewCreateCatalogRequest(f.context, CreateCatalogParams{Name: name})
+	createRequest, _ := NewCreateCatalogRequest(f.context, name)
 	setup = append(setup, createRequest)
 	for thread := 0; thread < f.threads; thread++ {
 		entityVersion := 1
 		for i := 0; i < f.repeat; i++ {
-			updateRequest, _ := NewUpdateCatalogRequest(f.context, UpdateCatalogParams{
-				Name:          name,
-				EntityVersion: entityVersion,
-			})
+			updateRequest, _ := NewUpdateCatalogRequest(f.context, name, entityVersion)
 			operations[thread] = append(operations[thread], updateRequest)
 
 			entityVersion++

@@ -17,8 +17,7 @@ func NewCleaner(context common.RequestContext) *CatalogCleaner {
 
 func (c *CatalogCleaner) CleanCatalog() error {
 
-	params := ListCatalogsParams{MaxResults: 1}
-	catalogs, err := ListCatalogs(c.context, params)
+	catalogs, err := ListCatalogs(c.context, 100)
 	if err != nil {
 		return err
 	}
@@ -31,10 +30,7 @@ func (c *CatalogCleaner) CleanCatalog() error {
 	log.Printf("Found %d catalog(s)", len(catalogs))
 
 	for _, catalogName := range names {
-		deleteParams := DeleteCatalogParams{
-			Name: catalogName,
-		}
-		request, err := NewDeleteCatalogRequest(c.context, deleteParams)
+		request, err := NewDeleteCatalogRequest(c.context, catalogName)
 		if err != nil {
 			return err
 		}

@@ -7,16 +7,12 @@ import (
 	"net/http"
 )
 
-func ListCatalogs(context common.RequestContext, params ListCatalogsParams) ([]Catalog, error) {
+func ListCatalogs(context common.RequestContext, maxResults int) ([]Catalog, error) {
 	var allCatalogs []Catalog
-	var nextPageToken string
+	var nextPageToken string = ""
 
 	for {
-		if len(allCatalogs) > 0 {
-			params.PageToken = nextPageToken
-		}
-
-		req, err := NewListCatalogsRequest(context, params)
+		req, err := NewListCatalogsRequest(context, nextPageToken, maxResults)
 		if err != nil {
 			return nil, err
 		}
@@ -27,7 +23,7 @@ func ListCatalogs(context common.RequestContext, params ListCatalogsParams) ([]C
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close() // Using Close() directly instead of defer within the loop
+		resp.Body.Close()
 		if err != nil {
 			return nil, err
 		}

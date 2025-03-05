@@ -26,10 +26,7 @@ func (c *CatalogCleaner) CleanCatalog() error {
 	}
 
 	for _, catalogName := range names {
-		deleteParams := DeleteCatalogParams{
-			Name: catalogName,
-		}
-		request, err := NewDeleteCatalogRequest(c.context, deleteParams)
+		request, err := NewDeleteCatalogRequest(c.context, catalogName)
 		if err != nil {
 			return err
 		}

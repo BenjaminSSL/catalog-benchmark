@@ -9,9 +9,9 @@ import (
 	"strconv"
 )
 
-func NewCreateCatalogRequest(context common.RequestContext, params CreateCatalogParams) (*http.Request, error) {
+func NewCreateCatalogRequest(context common.RequestContext, name string) (*http.Request, error) {
 	body := CreateCatalogBody{
-		Name: params.Name,
+		Name: name,
 	}
 
 	jsonBody, err := json.Marshal(body)
@@ -22,13 +22,13 @@ func NewCreateCatalogRequest(context common.RequestContext, params CreateCatalog
 	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/api/2.1/unity-catalog/catalogs").SetJSONBody(jsonBody).Build()
 }
 
-func NewDeleteCatalogRequest(context common.RequestContext, params DeleteCatalogParams) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/2.1/unity-catalog/catalogs/%s", params.Name)
+func NewDeleteCatalogRequest(context common.RequestContext, name string) (*http.Request, error) {
+	endpoint := fmt.Sprintf("/api/2.1/unity-catalog/catalogs/%s", name)
 	return common.NewRequestBuilder(context).SetMethod("DELETE").SetEndpoint(endpoint).Build()
 }
 
-func NewUpdateCatalogRequest(context common.RequestContext, params UpdateCatalogParams) (*http.Request, error) {
-	endpoint := fmt.Sprintf("/api/2.1/unity-catalog/catalogs/%s", params.Name)
+func NewUpdateCatalogRequest(context common.RequestContext, name string) (*http.Request, error) {
+	endpoint := fmt.Sprintf("/api/2.1/unity-catalog/catalogs/%s", name)
 
 	body := UpdateCatalogBody{
 		Comment: strconv.Itoa(rand.IntN(100)),
@@ -42,15 +42,15 @@ func NewUpdateCatalogRequest(context common.RequestContext, params UpdateCatalog
 	return common.NewRequestBuilder(context).SetMethod("PATCH").SetEndpoint(endpoint).SetJSONBody(jsonBody).Build()
 }
 
-func NewListCatalogsRequest(context common.RequestContext, params ListCatalogsParams) (*http.Request, error) {
+func NewListCatalogsRequest(context common.RequestContext, pageToken string, maxResults int) (*http.Request, error) {
 
 	builder := common.NewRequestBuilder(context).SetMethod("GET").SetEndpoint("/api/2.1/unity-catalog/catalogs")
 
-	if params.PageToken != "" {
-		builder.AddQueryParam("page_token", params.PageToken)
+	if pageToken != "" {
+		builder.AddQueryParam("page_token", pageToken)
 	}
-	if params.MaxResults != 0 {
-		builder.AddQueryParam("max_results", strconv.Itoa(params.MaxResults))
+	if maxResults != 0 {
+		builder.AddQueryParam("max_results", strconv.Itoa(maxResults))
 	}
 
 	return builder.Build()
