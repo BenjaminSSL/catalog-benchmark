@@ -2,10 +2,12 @@ package execution
 
 import (
 	"benchmark/internal/common"
+	"context"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -28,38 +30,57 @@ func NewExecutionEngine(ExperimentID string, plan *Plan) *Engine {
 }
 
 func (engine *Engine) Run() error {
-	for _, setup := range engine.Plan.Setup {
-		resp, err := http.DefaultClient.Do(setup)
-		if err != nil {
-			return err
-		}
-
-		resp.Body.Close()
+	// Initialize the environment by executing the setup requests
+	if err := setup(engine.Plan.Setup); err != nil {
+		return err
 	}
+
+	var httpClient = &http.Client{
+		Timeout: time.Second * 30,
+		Transport: &http.Transport{
+			MaxIdleConns:        10000,
+			MaxIdleConnsPerHost: 1000,
+			MaxConnsPerHost:     1000,
+			DisableKeepAlives:   false,
+			IdleConnTimeout:     90 * time.Second,
+			TLSHandshakeTimeout: 10 * time.Second,
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	for i := range engine.Plan.Execution {
 		engine.wg.Add(1)
 		go func(id int, executionPlan []*http.Request) {
 			logger, _ := common.NewRoutineBatchLogger("./logs/tmp", engine.ExperimentID, i, 100)
-			client := &http.Client{Timeout: time.Second * 30}
 
 			defer engine.wg.Done()
 			defer logger.Close()
 
 			for taskID, task := range executionPlan {
-				//logger.Log("INFO", taskID, fmt.Sprintf("Starting step %d", taskID), nil)
-
-				resp, err := client.Do(task)
+				req := task.WithContext(ctx)
+				resp, err := httpClient.Do(req)
 				if err != nil {
-					logger.Log("ERROR", taskID, fmt.Sprintf("failed to execute step"), err)
+					switch {
+					case errors.Is(err, context.Canceled):
+						logger.Log("ERROR", taskID, "Request timed out", err)
+					case err.(*url.Error).Timeout():
+						logger.Log("ERROR", taskID, "Connection timeout", err)
+					default:
+						logger.Log("ERROR", taskID, "Request failed", err)
+					}
 					continue
 				}
 
 				body, err := io.ReadAll(resp.Body)
+
 				resp.Body.Close()
 				if err != nil {
-					log.Printf("failed to read response body %d: %v", taskID, err)
+					logger.Log("ERROR", taskID, "Failed to read response body", err)
 					continue
 				}
+
 				statusCode := resp.StatusCode
 
 				logData := map[string]interface{}{
@@ -80,5 +101,22 @@ func (engine *Engine) Run() error {
 	}
 
 	engine.wg.Wait()
+	return nil
+}
+
+func setup(requests []*http.Request) error {
+
+	for _, request := range requests {
+		resp, err := http.DefaultClient.Do(request)
+		if err != nil {
+			return err
+		}
+		resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode > 299 {
+			return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+	}
+
 	return nil
 }
