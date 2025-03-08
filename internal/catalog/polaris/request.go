@@ -55,8 +55,12 @@ func NewUpdateCatalogRequest(context common.RequestContext, name string, entityV
 	return common.NewRequestBuilder(context).SetMethod("PUT").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).SetJSONBody(jsonBody).Build()
 }
 
-func NewListPrincipals(context common.RequestContext) (*http.Request, error) {
-	return common.NewRequestBuilder(context).SetEndpoint("principals").Build()
+func NewListPrincipalsRequest(context common.RequestContext) (*http.Request, error) {
+	return common.NewRequestBuilder(context).SetEndpoint("/principals").Build()
+}
+
+func CreatePrincipalRequest(context common.RequestContext, name string) (*http.Request, error) {
+	return nil, nil
 }
 
 func NewCreateSchemaRequest(context common.RequestContext, name string, prefix string) (*http.Request, error) {

@@ -20,8 +20,16 @@ type Catalog struct {
 	StorageConfigInfo   CatalogStorageConfigInfo `json:"storageConfigInfo"`
 }
 
-// Request Bodies
+type Principal struct {
+	Name                string            `json:"name"`
+	ClientID            string            `json:"clientId"`
+	Properties          map[string]string `json:"properties"`
+	CreateTimestamp     int64             `json:"createTimestamp"`
+	LastUpdateTimestamp int64             `json:"lastUpdateTimestamp"`
+	EntityVersion       int               `json:"entityVersion"`
+}
 
+// Request Bodies
 type CreateCatalogBody struct {
 	Catalog Catalog `json:"catalog"`
 }
