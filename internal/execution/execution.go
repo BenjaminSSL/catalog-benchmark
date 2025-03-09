@@ -50,6 +50,12 @@ func (engine *Engine) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	totalTasks := 0
+	for _, executionPlan := range engine.Plan.Execution {
+		totalTasks += len(executionPlan)
+	}
+	progressBar := common.NewProgressBar(totalTasks)
+
 	for i := range engine.Plan.Execution {
 		engine.wg.Add(1)
 		go func(id int, executionPlan []*http.Request) {
@@ -57,8 +63,8 @@ func (engine *Engine) Run() error {
 
 			defer engine.wg.Done()
 			defer logger.Close()
-
 			for taskID, task := range executionPlan {
+
 				req := task.WithContext(ctx)
 				resp, err := httpClient.Do(req)
 				if err != nil {
@@ -95,6 +101,9 @@ func (engine *Engine) Run() error {
 					logger.Log("ERROR", taskID, fmt.Sprintf("Step %d has failed", taskID), logData)
 				}
 
+				progressBar.Add(1)
+
+				continue
 			}
 
 		}(i, engine.Plan.Execution[i])
