@@ -4,12 +4,14 @@ import (
 	"benchmark/internal/common"
 	"benchmark/internal/evaluate"
 	"benchmark/internal/execution"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -50,22 +52,25 @@ func newBenchmarkCommand() *Command {
 		Handler: func() error {
 			// TODO: validate the flags
 			benchmarkType := common.BenchmarkType(config.BenchmarkID)
-			return runBenchmark(config.ExperimentID, benchmarkType, config.Catalog, config.Threads, config.Repeat)
+			experiment := common.Experiment{
+				ID:          config.ExperimentID,
+				BenchmarkID: benchmarkType,
+				Catalog:     config.Catalog,
+				Threads:     config.Threads,
+				Repeat:      config.Repeat,
+			}
+			return runBenchmark(experiment)
 		},
 	}
 }
 
-func runBenchmark(experimentID string, benchmarkID common.BenchmarkType, catalogName string, threads int, repeat int) error {
-	experiment := common.Experiment{
-		ID:          experimentID,
-		BenchmarkID: benchmarkID,
-		Catalog:     catalogName,
-		Threads:     threads,
-		Repeat:      repeat,
-	}
-	log.Printf("Starting experiment %s with benchmark scenario %d", experimentID, benchmarkID)
+func runBenchmark(experiment common.Experiment) error {
 
-	context, err := common.GetRequestContextFromEnv(catalogName)
+	saveExperiment(experiment, "./output/experiments")
+
+	log.Printf("Starting experiment %s with benchmark scenario %d", experiment.ID, experiment.BenchmarkID)
+
+	context, err := common.GetRequestContextFromEnv(experiment.Catalog)
 	if err != nil {
 		return err
 	}
@@ -81,7 +86,7 @@ func runBenchmark(experimentID string, benchmarkID common.BenchmarkType, catalog
 
 	done := make(chan error)
 
-	engine := execution.NewExecutionEngine(experimentID, executionPlans)
+	engine := execution.NewExecutionEngine(experiment.ID, executionPlans)
 	startTime := time.Now()
 
 	go func() {
@@ -96,18 +101,18 @@ func runBenchmark(experimentID string, benchmarkID common.BenchmarkType, catalog
 
 		elapsed := time.Since(startTime)
 
-		log.Printf("\nFinished in %f seconds experiment %s\n", elapsed.Seconds(), experimentID)
+		log.Printf("\nFinished in %f seconds experiment %s\n", elapsed.Seconds(), experiment.ID)
 
 		err = evaluate.BenchmarkExecution(context, experiment)
 		if err != nil {
 			log.Printf("Error evaluating benchmark: %s\n", err)
 		}
 
-		return common.MergeLogs("./logs/tmp", experimentID)
+		return common.MergeLogs("./output/logs/tmp", experiment.ID)
 
 	case sig := <-quit:
 		log.Printf("Received signal \"%v\", shutting down...", sig)
-		log.Printf("Stopping experiment %s with benchmark scenario %d\n", experimentID, benchmarkID)
+		log.Printf("Stopping experiment %s with benchmark scenario %d\n", experiment.ID, experiment.BenchmarkID)
 		return nil
 	}
 
@@ -128,4 +133,29 @@ func GenerateExecutionPlan(context common.RequestContext, experiment common.Expe
 		return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 	}
 
+}
+
+func saveExperiment(experiment common.Experiment, dir string) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+
+	filePath := filepath.Join(dir, experiment.ID+".json")
+
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %w", filePath, err)
+	}
+	defer file.Close()
+
+	jsonContent, err := json.MarshalIndent(experiment, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal experiment: %w", err)
+	}
+
+	if _, err := file.Write(jsonContent); err != nil {
+		return fmt.Errorf("failed to write to file %s: %w", filePath, err)
+	}
+
+	return nil
 }

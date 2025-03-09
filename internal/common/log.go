@@ -102,7 +102,7 @@ func MergeLogs(logDir string, experimentID string) error {
 		return err
 	}
 
-	mergedFilename := filepath.Join("./logs", fmt.Sprintf("%s.jsonl", experimentID))
+	mergedFilename := filepath.Join("./output/logs", fmt.Sprintf("%s.jsonl", experimentID))
 	mergedFile, err := os.OpenFile(mergedFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
