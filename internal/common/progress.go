@@ -36,9 +36,13 @@ func NewProgressBar(total int) *ProgressBar {
 func (p *ProgressBar) Add(n int) {
 	// Add to buffer and flush if limit is reached
 	if p.buffer.Add(uint64(n)) >= p.bufferSize {
-		p.mu.Lock()
-		val := p.buffer.Swap(0)
-		p.bar.Add(int(val))
-		p.mu.Unlock()
+		p.Flush()
 	}
+}
+
+func (p *ProgressBar) Flush() {
+	p.mu.Lock()
+	val := p.buffer.Swap(0)
+	p.bar.Add(int(val))
+	p.mu.Unlock()
 }

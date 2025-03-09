@@ -59,12 +59,12 @@ func (engine *Engine) Run() error {
 	for i := range engine.Plan.Execution {
 		engine.wg.Add(1)
 		go func(id int, executionPlan []*http.Request) {
-			logger, _ := common.NewRoutineBatchLogger("./logs/tmp", engine.ExperimentID, i, 100)
+			logger, _ := common.NewRoutineBatchLogger("./output/logs/tmp", engine.ExperimentID, i, 100)
 
 			defer engine.wg.Done()
 			defer logger.Close()
 			for taskID, task := range executionPlan {
-
+				progressBar.Add(1)
 				req := task.WithContext(ctx)
 				resp, err := httpClient.Do(req)
 				if err != nil {
@@ -101,8 +101,6 @@ func (engine *Engine) Run() error {
 					logger.Log("ERROR", taskID, fmt.Sprintf("Step %d has failed", taskID), logData)
 				}
 
-				progressBar.Add(1)
-
 				continue
 			}
 
@@ -110,6 +108,7 @@ func (engine *Engine) Run() error {
 	}
 
 	engine.wg.Wait()
+	progressBar.Flush()
 	return nil
 }
 
