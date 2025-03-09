@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"benchmark/internal/catalog/polaris"
-	"benchmark/internal/catalog/unity"
+	"benchmark/internal/cleaner"
 	"benchmark/internal/common"
 	"flag"
 )
@@ -43,22 +42,12 @@ func runClean(catalog string, entity string) error {
 		return err
 	}
 
-	switch catalog {
-	case "polaris":
-		cleaner := polaris.NewCleaner(context)
-		switch entity {
-		case "catalog":
-			if err = cleaner.CleanCatalog(); err != nil {
-				return err
-			}
-		}
-	case "unity":
-		cleaner := unity.NewCleaner(context)
-		switch entity {
-		case "catalog":
-			if err = cleaner.CleanCatalog(); err != nil {
-				return err
-			}
+	catalogCleaner := cleaner.NewCatalogCleaner(context, catalog)
+
+	switch entity {
+	case "catalog":
+		if err = catalogCleaner.CleanCatalog(); err != nil {
+			return err
 		}
 	}
 
