@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"benchmark/internal/catalog/polaris"
-	"benchmark/internal/catalog/unity"
 	"benchmark/internal/common"
 	"benchmark/internal/evaluate"
 	"benchmark/internal/execution"
@@ -98,7 +96,7 @@ func runBenchmark(experimentID string, benchmarkID common.BenchmarkType, catalog
 
 		elapsed := time.Since(startTime)
 
-		log.Printf("Finished in %f seconds experiment %s\n", elapsed.Seconds(), experimentID)
+		log.Printf("\nFinished in %f seconds experiment %s\n", elapsed.Seconds(), experimentID)
 
 		err = evaluate.BenchmarkExecution(context, experiment)
 		if err != nil {
@@ -116,36 +114,18 @@ func runBenchmark(experimentID string, benchmarkID common.BenchmarkType, catalog
 }
 
 func GenerateExecutionPlan(context common.RequestContext, experiment common.Experiment) (*execution.Plan, error) {
-	switch experiment.Catalog {
-	case "polaris":
-		generator := polaris.NewExecutionPlanGenerator(context, experiment.Threads, experiment.Repeat)
+	generator := execution.NewExecutionPlanGenerator(context, experiment.Catalog, experiment.Threads, experiment.Repeat)
 
-		switch experiment.BenchmarkID {
-		case common.CreateCatalogBenchmark:
-			return generator.CreateCatalog()
-		case common.CreateDeleteCatalogBenchmark:
-			return generator.CreateDeleteCatalog()
-		case common.UpdateCatalogBenchmark:
-			log.Printf("Updating catalog benchmark")
-			return generator.UpdateCatalog()
-		default:
-			return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
-		}
-	case "unity":
-		generator := unity.NewExecutionPlanGenerator(context, experiment.Threads, experiment.Repeat)
-		switch experiment.BenchmarkID {
-		case common.CreateCatalogBenchmark:
-			return generator.CreateCatalog()
-		case common.CreateDeleteCatalogBenchmark:
-			return generator.CreateDeleteCatalog()
-		case common.UpdateCatalogBenchmark:
-			return generator.UpdateCatalog()
-		default:
-			return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
-
-		}
+	switch experiment.BenchmarkID {
+	case common.CreateCatalogBenchmark:
+		return generator.CreateCatalog()
+	case common.CreateDeleteCatalogBenchmark:
+		return generator.CreateDeleteCatalog()
+	case common.UpdateCatalogBenchmark:
+		log.Printf("Updating catalog benchmark")
+		return generator.UpdateCatalog()
+	default:
+		return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 	}
-
-	return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 
 }
