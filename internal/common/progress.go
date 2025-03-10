@@ -28,6 +28,7 @@ func NewProgressBar(total int) *ProgressBar {
 			}),
 			progressbar.OptionClearOnFinish(),
 			progressbar.OptionShowIts(),
+			progressbar.OptionSetItsString("request"),
 		),
 		bufferSize: uint64(100),
 	}
