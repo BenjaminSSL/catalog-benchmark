@@ -1,14 +1,14 @@
 package polaris
 
 import (
-	"benchmark/internal/common"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 )
 
-func ListCatalogs(context common.RequestContext) ([]Catalog, error) {
-	req, err := NewListCatalogsRequest(context)
+func ListCatalogs(ctx context.Context) ([]Catalog, error) {
+	req, err := NewListCatalogsRequest(ctx)
 	if err != nil {
 		return nil, err
 	}

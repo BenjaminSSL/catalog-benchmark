@@ -3,25 +3,24 @@ package cleaner
 import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/catalog/unity"
-	"benchmark/internal/common"
+	"context"
+	"log"
 	"net/http"
 )
 
 type CatalogCleaner struct {
-	context common.RequestContext
-	client  *http.Client
 	catalog string
 }
 
-func NewCatalogCleaner(context common.RequestContext, catalog string) *CatalogCleaner {
-	return &CatalogCleaner{context: context, client: &http.Client{}, catalog: catalog}
+func NewCatalogCleaner(catalog string) *CatalogCleaner {
+	return &CatalogCleaner{catalog: catalog}
 }
 
-func (c *CatalogCleaner) CleanCatalog() error {
+func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 	var ids []string
 	switch c.catalog {
 	case "polaris":
-		catalogs, err := polaris.ListCatalogs(c.context)
+		catalogs, err := polaris.ListCatalogs(ctx)
 		if err != nil {
 			return err
 		}
@@ -29,7 +28,7 @@ func (c *CatalogCleaner) CleanCatalog() error {
 			ids = append(ids, catalog.Name)
 		}
 	case "unity":
-		catalogs, err := unity.ListCatalogs(c.context, 0)
+		catalogs, err := unity.ListCatalogs(ctx, 1000)
 		if err != nil {
 			return err
 		}
@@ -38,21 +37,23 @@ func (c *CatalogCleaner) CleanCatalog() error {
 		}
 	}
 
+	log.Printf("Removing %d catalogs", len(ids))
+
 	for _, id := range ids {
 		var deleteCatalogRequest *http.Request
 		var err error
 
 		switch c.catalog {
 		case "polaris":
-			deleteCatalogRequest, err = polaris.NewDeleteCatalogRequest(c.context, id)
+			deleteCatalogRequest, err = polaris.NewDeleteCatalogRequest(ctx, id)
 		case "unity":
-			deleteCatalogRequest, err = unity.NewDeleteCatalogRequest(c.context, id)
+			deleteCatalogRequest, err = unity.NewDeleteCatalogRequest(ctx, id)
 		}
 		if err != nil {
 			return err
 		}
 
-		_, err = c.client.Do(deleteCatalogRequest)
+		_, err = http.DefaultClient.Do(deleteCatalogRequest)
 		if err != nil {
 			return err
 		}

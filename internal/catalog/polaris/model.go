@@ -30,6 +30,7 @@ type Principal struct {
 }
 
 // Request Bodies
+
 type CreateCatalogBody struct {
 	Catalog Catalog `json:"catalog"`
 }

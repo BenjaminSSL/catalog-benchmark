@@ -1,11 +1,18 @@
 package common
 
+import (
+	"github.com/google/uuid"
+	"time"
+)
+
 type Experiment struct {
-	ID          string        `json:"id"`
-	Catalog     string        `json:"catalog"`
-	BenchmarkID BenchmarkType `json:"benchmark"`
-	Threads     int           `json:"threads"`
-	Repeat      int           `json:"repeat"`
+	ID             uuid.UUID     `json:"id"`
+	Catalog        string        `json:"catalog"`
+	BenchmarkID    BenchmarkType `json:"benchmark"`
+	Threads        int           `json:"threads"`
+	Repeat         int           `json:"repeat"`
+	StartTimestamp time.Time     `json:"start_timestamp"`
+	EndTimestamp   time.Time     `json:"end_timestamp"`
 }
 
 type BenchmarkType int
@@ -13,5 +20,6 @@ type BenchmarkType int
 const (
 	CreateCatalogBenchmark BenchmarkType = iota + 1
 	CreateDeleteCatalogBenchmark
-	UpdateCatalogBenchmark
+	CreateUpdateCatalogBenchmark
+	CreateListCatalogBenchmark
 )

@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,13 +13,20 @@ import (
 type RequestParams interface {
 	Validate() error
 }
-type RequestContext struct {
+type RequestConfig struct {
 	Host  string
 	Token string
 	Path  string // The default API path to be used when no specific endpoint is provided
 }
 
-func GetRequestContextFromEnv(catalogName string) (RequestContext, error) {
+func GetConfig(ctx context.Context) RequestConfig {
+	if config, ok := ctx.Value("config").(RequestConfig); ok {
+		return config
+	}
+	return RequestConfig{}
+}
+
+func GetRequestConfigFromEnv(catalogName string) (RequestConfig, error) {
 	var host string
 	var token string
 	var defaultPath string
@@ -31,7 +39,7 @@ func GetRequestContextFromEnv(catalogName string) (RequestContext, error) {
 
 		token, err = FetchPolarisToken(host)
 		if err != nil {
-			return RequestContext{}, err
+			return RequestConfig{}, err
 		}
 
 		log.Printf("Fetched the token from Polaris")
@@ -41,11 +49,12 @@ func GetRequestContextFromEnv(catalogName string) (RequestContext, error) {
 		defaultPath = os.Getenv("UNITY_PATH")
 	}
 
-	return RequestContext{host, token, defaultPath}, nil
+	return RequestConfig{host, token, defaultPath}, nil
 }
 
 type RequestBuilder struct {
-	context  RequestContext
+	host     string
+	path     string
 	method   string
 	endpoint string
 	body     []byte
@@ -53,13 +62,15 @@ type RequestBuilder struct {
 	headers  http.Header
 }
 
-func NewRequestBuilder(context RequestContext) *RequestBuilder {
-	return &RequestBuilder{
-		context: context,
+func NewRequestBuilder() *RequestBuilder {
+
+	builder := &RequestBuilder{
 		method:  "GET",
 		headers: make(http.Header),
 		query:   make(map[string]string),
 	}
+
+	return builder
 }
 
 // SetMethod sets the requests method. The default method is GET.
@@ -99,28 +110,27 @@ func (b *RequestBuilder) buildQuery() string {
 	return query
 }
 
-func (b *RequestBuilder) Build() (*http.Request, error) {
-	baseURL := fmt.Sprintf("http://%s%s", b.context.Host, path.Clean(b.context.Path))
+func (b *RequestBuilder) Build(ctx context.Context) (*http.Request, error) {
+	config := GetConfig(ctx)
+	baseURL := fmt.Sprintf("http://%s%s", config.Host, path.Clean(config.Path))
 	endpoint := path.Join("/", b.endpoint)
 
 	url := fmt.Sprintf("%s%s", baseURL, endpoint)
 
 	if len(b.query) > 0 {
-		endpoint = url + "?" + b.buildQuery()
+		url = url + "?" + b.buildQuery()
 	}
 
-	req, err := http.NewRequest(b.method, url, bytes.NewBuffer(b.body))
+	req, err := http.NewRequestWithContext(ctx, b.method, url, bytes.NewBuffer(b.body))
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header = b.headers
 
-	// Automatically set the authorization token if it is set
-	if b.context.Token != "" {
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", b.context.Token))
+	if config.Token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.Token))
 	}
-
 	return req, nil
 
 }

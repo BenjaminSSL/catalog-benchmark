@@ -22,7 +22,7 @@ func RegisterCommand(command *Command) {
 
 func Run() {
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading the enviroment variabels files .env")
+		log.Fatal("Error loading the environment variables files .env")
 	}
 
 	args := os.Args[1:]

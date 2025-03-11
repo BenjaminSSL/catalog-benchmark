@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,21 +18,21 @@ type Plan struct {
 	Execution [][]*http.Request
 }
 type Engine struct {
-	ExperimentID string
+	ExperimentID uuid.UUID
 	Plan         *Plan
 	wg           sync.WaitGroup
 }
 
-func NewExecutionEngine(ExperimentID string, plan *Plan) *Engine {
+func NewExecutionEngine(ExperimentID uuid.UUID, plan *Plan) *Engine {
 	return &Engine{
 		ExperimentID: ExperimentID,
 		Plan:         plan,
 	}
 }
 
-func (engine *Engine) Run() error {
+func (engine *Engine) Run(ctx context.Context) error {
 	// Initialize the environment by executing the setup requests
-	if err := setup(engine.Plan.Setup); err != nil {
+	if err := setup(ctx, engine.Plan.Setup); err != nil {
 		return err
 	}
 
@@ -47,9 +48,6 @@ func (engine *Engine) Run() error {
 		},
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	totalTasks := 0
 	for _, executionPlan := range engine.Plan.Execution {
 		totalTasks += len(executionPlan)
@@ -64,17 +62,25 @@ func (engine *Engine) Run() error {
 			defer engine.wg.Done()
 			defer logger.Close()
 			for taskID, task := range executionPlan {
+				// Check if the context is cancelled
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				progressBar.Add(1)
 				req := task.WithContext(ctx)
 				resp, err := httpClient.Do(req)
+				statusCode := resp.StatusCode
 				if err != nil {
 					switch {
 					case errors.Is(err, context.Canceled):
-						logger.Log("ERROR", taskID, "Request timed out", err)
+						logger.Log("ERROR", taskID, statusCode, "", errors.New("Request timed out"))
 					case err.(*url.Error).Timeout():
-						logger.Log("ERROR", taskID, "Connection timeout", err)
+						logger.Log("ERROR", taskID, statusCode, "", errors.New("Connection timeout"))
 					default:
-						logger.Log("ERROR", taskID, "Request failed", err)
+						logger.Log("ERROR", taskID, statusCode, "", errors.New("Request failed"))
 					}
 					continue
 				}
@@ -83,22 +89,18 @@ func (engine *Engine) Run() error {
 
 				resp.Body.Close()
 				if err != nil {
-					logger.Log("ERROR", taskID, "Failed to read response body", err)
+					logger.Log("ERROR", taskID, statusCode, "", errors.New("Failed to read response body"))
 					continue
 				}
 
-				statusCode := resp.StatusCode
-
-				logData := map[string]interface{}{
-					"task_id":       taskID,
-					"status_code":   statusCode,
-					"response_body": string(body),
+				if len(body) > 1000 {
+					body = body[:1000]
 				}
 
 				if statusCode >= 200 && statusCode <= 299 {
-					logger.Log("INFO", taskID, fmt.Sprintf("Finished step %d", taskID), logData)
+					logger.Log("INFO", taskID, statusCode, string(body), "")
 				} else {
-					logger.Log("ERROR", taskID, fmt.Sprintf("Step %d has failed", taskID), logData)
+					logger.Log("ERROR", taskID, statusCode, "", errors.New(fmt.Sprintf("Step %d has failed", taskID)))
 				}
 
 				continue
@@ -109,20 +111,25 @@ func (engine *Engine) Run() error {
 
 	engine.wg.Wait()
 	progressBar.Flush()
-	return nil
+	return ctx.Err()
 }
 
-func setup(requests []*http.Request) error {
+func setup(ctx context.Context, requests []*http.Request) error {
 
 	for _, request := range requests {
-		resp, err := http.DefaultClient.Do(request)
-		if err != nil {
-			return err
-		}
-		resp.Body.Close()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			resp, err := http.DefaultClient.Do(request)
+			if err != nil {
+				return err
+			}
+			resp.Body.Close()
 
-		if resp.StatusCode < 200 || resp.StatusCode > 299 {
-			return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+			if resp.StatusCode < 200 || resp.StatusCode > 299 {
+				return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+			}
 		}
 	}
 

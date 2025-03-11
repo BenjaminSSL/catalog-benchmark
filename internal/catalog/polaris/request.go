@@ -2,12 +2,13 @@ package polaris
 
 import (
 	"benchmark/internal/common"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 )
 
-func NewCreateCatalogRequest(context common.RequestContext, name string) (*http.Request, error) {
+func NewCreateCatalogRequest(ctx context.Context, name string) (*http.Request, error) {
 	body := CreateCatalogBody{
 		Catalog: Catalog{
 			EntityType: "INTERNAL",
@@ -26,19 +27,19 @@ func NewCreateCatalogRequest(context common.RequestContext, name string) (*http.
 		return nil, err
 	}
 
-	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build(ctx)
 }
 
-func NewDeleteCatalogRequest(context common.RequestContext, name string) (*http.Request, error) {
-	return common.NewRequestBuilder(context).SetMethod("DELETE").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build()
+func NewDeleteCatalogRequest(ctx context.Context, name string) (*http.Request, error) {
+	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx)
 
 }
 
-func NewListCatalogsRequest(context common.RequestContext) (*http.Request, error) {
-	return common.NewRequestBuilder(context).SetEndpoint("/catalogs").Build()
+func NewListCatalogsRequest(ctx context.Context) (*http.Request, error) {
+	return common.NewRequestBuilder().SetEndpoint("/catalogs").Build(ctx)
 }
 
-func NewUpdateCatalogRequest(context common.RequestContext, name string, entityVersion int) (*http.Request, error) {
+func NewUpdateCatalogRequest(ctx context.Context, name string, entityVersion int) (*http.Request, error) {
 	body := UpdateCatalogBody{
 		CurrentEntityVersion: entityVersion,
 		Properties:           CatalogProperties{},
@@ -52,18 +53,18 @@ func NewUpdateCatalogRequest(context common.RequestContext, name string, entityV
 		return nil, err
 	}
 
-	return common.NewRequestBuilder(context).SetMethod("PUT").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).SetJSONBody(jsonBody).Build(ctx)
 }
 
-func NewListPrincipalsRequest(context common.RequestContext) (*http.Request, error) {
-	return common.NewRequestBuilder(context).SetEndpoint("/principals").Build()
+func NewListPrincipalsRequest(ctx context.Context) (*http.Request, error) {
+	return common.NewRequestBuilder().SetEndpoint("/principals").Build(ctx)
 }
 
-func CreatePrincipalRequest(context common.RequestContext, name string) (*http.Request, error) {
+func CreatePrincipalRequest(ctx context.Context, name string) (*http.Request, error) {
 	return nil, nil
 }
 
-func NewCreateSchemaRequest(context common.RequestContext, name string, prefix string) (*http.Request, error) {
+func NewCreateSchemaRequest(ctx context.Context, name string, prefix string) (*http.Request, error) {
 	body := CreateCatalogBody{
 		Catalog: Catalog{
 			EntityType: "INTERNAL",
@@ -82,5 +83,5 @@ func NewCreateSchemaRequest(context common.RequestContext, name string, prefix s
 		panic(err)
 	}
 
-	return common.NewRequestBuilder(context).SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build()
+	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build(ctx)
 }

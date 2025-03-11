@@ -3,29 +3,27 @@ package execution
 import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/catalog/unity"
-	"benchmark/internal/common"
+	"context"
 	"github.com/google/uuid"
 	"net/http"
 )
 
-type ExecutionPlanGenerator struct {
-	context common.RequestContext
+type PlanGenerator struct {
 	threads int
 	repeat  int
 	catalog string
 }
 
-func NewExecutionPlanGenerator(context common.RequestContext, catalog string, threads int, repeat int) *ExecutionPlanGenerator {
+func NewExecutionPlanGenerator(catalog string, threads int, repeat int) *PlanGenerator {
 
-	return &ExecutionPlanGenerator{
-		context: context,
+	return &PlanGenerator{
 		catalog: catalog,
 		threads: threads,
 		repeat:  repeat,
 	}
 }
 
-func (f *ExecutionPlanGenerator) CreateCatalog() (*Plan, error) {
+func (f *PlanGenerator) CreateCatalog(ctx context.Context) (*Plan, error) {
 	var req *http.Request
 	var err error
 
@@ -36,9 +34,9 @@ func (f *ExecutionPlanGenerator) CreateCatalog() (*Plan, error) {
 
 			switch f.catalog {
 			case "polaris":
-				req, err = polaris.NewCreateCatalogRequest(f.context, name)
+				req, err = polaris.NewCreateCatalogRequest(ctx, name)
 			case "unity":
-				req, err = unity.NewCreateCatalogRequest(f.context, name)
+				req, err = unity.NewCreateCatalogRequest(ctx, name)
 			}
 			if err != nil {
 				return nil, err
@@ -51,7 +49,7 @@ func (f *ExecutionPlanGenerator) CreateCatalog() (*Plan, error) {
 	}, nil
 }
 
-func (f *ExecutionPlanGenerator) CreateDeleteCatalog() (*Plan, error) {
+func (f *PlanGenerator) CreateDeleteCatalog(ctx context.Context) (*Plan, error) {
 	var createRequest *http.Request
 	var deleteRequest *http.Request
 	var err error
@@ -64,11 +62,11 @@ func (f *ExecutionPlanGenerator) CreateDeleteCatalog() (*Plan, error) {
 
 			switch f.catalog {
 			case "polaris":
-				createRequest, err = polaris.NewCreateCatalogRequest(f.context, name)
-				deleteRequest, err = polaris.NewDeleteCatalogRequest(f.context, name)
+				createRequest, err = polaris.NewCreateCatalogRequest(ctx, name)
+				deleteRequest, err = polaris.NewDeleteCatalogRequest(ctx, name)
 			case "unity":
-				createRequest, err = unity.NewCreateCatalogRequest(f.context, name)
-				deleteRequest, err = unity.NewDeleteCatalogRequest(f.context, name)
+				createRequest, err = unity.NewCreateCatalogRequest(ctx, name)
+				deleteRequest, err = unity.NewDeleteCatalogRequest(ctx, name)
 			}
 			if err != nil {
 				return nil, err
@@ -82,7 +80,7 @@ func (f *ExecutionPlanGenerator) CreateDeleteCatalog() (*Plan, error) {
 	return &Plan{Execution: operations}, nil
 }
 
-func (f *ExecutionPlanGenerator) UpdateCatalog() (*Plan, error) {
+func (f *PlanGenerator) CreateUpdateCatalog(ctx context.Context) (*Plan, error) {
 	var createRequest *http.Request
 	var updateRequest *http.Request
 	var err error
@@ -93,9 +91,9 @@ func (f *ExecutionPlanGenerator) UpdateCatalog() (*Plan, error) {
 
 	switch f.catalog {
 	case "polaris":
-		createRequest, err = polaris.NewCreateCatalogRequest(f.context, name)
+		createRequest, err = polaris.NewCreateCatalogRequest(ctx, name)
 	case "unity":
-		createRequest, err = unity.NewCreateCatalogRequest(f.context, name)
+		createRequest, err = unity.NewCreateCatalogRequest(ctx, name)
 	}
 	if err != nil {
 	}
@@ -105,10 +103,10 @@ func (f *ExecutionPlanGenerator) UpdateCatalog() (*Plan, error) {
 		for i := 0; i < f.repeat; i++ {
 			switch f.catalog {
 			case "polaris":
-				updateRequest, err = polaris.NewUpdateCatalogRequest(f.context, name, entityVersion)
+				updateRequest, err = polaris.NewUpdateCatalogRequest(ctx, name, entityVersion)
 				entityVersion++
 			case "unity":
-				updateRequest, err = unity.NewUpdateCatalogRequest(f.context, name)
+				updateRequest, err = unity.NewUpdateCatalogRequest(ctx, name)
 			}
 			operations[thread] = append(operations[thread], updateRequest)
 
@@ -121,7 +119,7 @@ func (f *ExecutionPlanGenerator) UpdateCatalog() (*Plan, error) {
 	}, nil
 }
 
-func (f *ExecutionPlanGenerator) CreateAndListCatalog() (*Plan, error) {
+func (f *PlanGenerator) CreateListCatalog(ctx context.Context) (*Plan, error) {
 	var listCatalogRequest *http.Request
 	var createCatalogRequest *http.Request
 	var err error
@@ -133,9 +131,9 @@ func (f *ExecutionPlanGenerator) CreateAndListCatalog() (*Plan, error) {
 			if i%checkpoints == 0 {
 				switch f.catalog {
 				case "polaris":
-					listCatalogRequest, err = polaris.NewListCatalogsRequest(f.context)
+					listCatalogRequest, err = polaris.NewListCatalogsRequest(ctx)
 				case "unity":
-					listCatalogRequest, err = unity.NewListCatalogsRequest(f.context, "", 100)
+					listCatalogRequest, err = unity.NewListCatalogsRequest(ctx, "", 100)
 				}
 				if err != nil {
 					return nil, err
@@ -144,9 +142,9 @@ func (f *ExecutionPlanGenerator) CreateAndListCatalog() (*Plan, error) {
 			} else {
 				switch f.catalog {
 				case "polaris":
-					createCatalogRequest, err = polaris.NewCreateCatalogRequest(f.context, uuid.New().String())
+					createCatalogRequest, err = polaris.NewCreateCatalogRequest(ctx, uuid.New().String())
 				case "unity":
-					createCatalogRequest, err = unity.NewCreateCatalogRequest(f.context, uuid.New().String())
+					createCatalogRequest, err = unity.NewCreateCatalogRequest(ctx, uuid.New().String())
 				}
 				if err != nil {
 					return nil, err

@@ -1,18 +1,25 @@
 package unity
 
 import (
-	"benchmark/internal/common"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 )
 
-func ListCatalogs(context common.RequestContext, maxResults int) ([]Catalog, error) {
+func ListCatalogs(ctx context.Context, maxResults int) ([]Catalog, error) {
 	var allCatalogs []Catalog
-	var nextPageToken string = ""
+	var nextPageToken = ""
 
 	for {
-		req, err := NewListCatalogsRequest(context, nextPageToken, maxResults)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+
+		}
+
+		req, err := NewListCatalogsRequest(ctx, nextPageToken, maxResults)
 		if err != nil {
 			return nil, err
 		}

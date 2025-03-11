@@ -3,6 +3,7 @@ package cmd
 import (
 	"benchmark/internal/cleaner"
 	"benchmark/internal/common"
+	"context"
 	"flag"
 )
 
@@ -37,16 +38,20 @@ func newCleanCommand() *Command {
 }
 
 func runClean(catalog string, entity string) error {
-	context, err := common.GetRequestContextFromEnv(catalog)
+	config, err := common.GetRequestConfigFromEnv(catalog)
 	if err != nil {
 		return err
 	}
 
-	catalogCleaner := cleaner.NewCatalogCleaner(context, catalog)
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = context.WithValue(ctx, "config", config)
+
+	defer cancel()
+	catalogCleaner := cleaner.NewCatalogCleaner(catalog)
 
 	switch entity {
 	case "catalog":
-		if err = catalogCleaner.CleanCatalog(); err != nil {
+		if err := catalogCleaner.CleanCatalog(ctx); err != nil {
 			return err
 		}
 	}

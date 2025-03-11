@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"log"
 	"os"
@@ -24,11 +25,12 @@ type LogEntry struct {
 	ThreadID     int    `json:"thread_id"`
 	StepID       int    `json:"step_id"`
 	Timestamp    string `json:"timestamp"`
-	Message      string `json:"message"`
+	StatusCode   int    `json:"status_code"`
+	Body         string `json:"body"`
 	Data         any    `json:"data"`
 }
 
-func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batchSize int) (*RoutineBatchLogger, error) {
+func NewRoutineBatchLogger(logDir string, experimentID uuid.UUID, theadID int, batchSize int) (*RoutineBatchLogger, error) {
 	// Creates the log directory, if it already exists it does not create a new directory
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create the log directory: %w", err)
@@ -42,7 +44,7 @@ func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batc
 	}
 
 	return &RoutineBatchLogger{
-		ExperimentID: experimentID,
+		ExperimentID: experimentID.String(),
 		TheadID:      theadID,
 		file:         file,
 		buffer:       make([]LogEntry, 0, batchSize),
@@ -51,15 +53,16 @@ func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batc
 
 }
 
-func (l *RoutineBatchLogger) Log(level string, stepID int, message string, data any) {
+func (l *RoutineBatchLogger) Log(level string, stepID int, statusCode int, body string, data any) {
 	l.buffer = append(l.buffer, LogEntry{
 		Level:        level,
 		ExperimentID: l.ExperimentID,
 		ThreadID:     l.TheadID,
 		StepID:       stepID,
-		Timestamp:    time.Now().UTC().Format(time.RFC3339Nano),
-		Message:      message,
+		StatusCode:   statusCode,
+		Body:         body,
 		Data:         data,
+		Timestamp:    time.Now().UTC().Format(time.RFC3339Nano),
 	})
 
 	if len(l.buffer) >= l.batchSize {
@@ -127,6 +130,22 @@ func MergeLogs(logDir string, experimentID string) error {
 			return err
 		}
 
+		err = os.Remove(file)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func DeleteLogs(logDir string) error {
+	files, err := filepath.Glob(filepath.Join(logDir, "*.jsonl"))
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
 		err = os.Remove(file)
 		if err != nil {
 			return err
