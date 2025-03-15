@@ -46,7 +46,7 @@ func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 	progressBar := common.NewProgressBar(len(ids))
 	progressBar.SetBufferSize(10)
 
-	idChan := make(chan string, c.threads)
+	idChan := make(chan string, len(ids))
 	errChan := make(chan error, len(ids))
 
 	var wg sync.WaitGroup
@@ -59,6 +59,8 @@ func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 				var deleteCatalogRequest *http.Request
 				var err error
 
+				progressBar.Add(1)
+
 				switch c.catalog {
 				case "polaris":
 					deleteCatalogRequest, err = polaris.NewDeleteCatalogRequest(ctx, id)
@@ -70,12 +72,14 @@ func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 					continue
 				}
 
-				_, err = http.DefaultClient.Do(deleteCatalogRequest)
+				resp, err := http.DefaultClient.Do(deleteCatalogRequest)
 				if err != nil {
 					errChan <- err
 					continue
 				}
-				progressBar.Add(1)
+
+				resp.Body.Close()
+
 			}
 		}()
 	}
