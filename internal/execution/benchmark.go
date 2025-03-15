@@ -4,6 +4,7 @@ import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/catalog/unity"
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"net/http"
 )
@@ -119,16 +120,20 @@ func (f *PlanGenerator) CreateUpdateCatalog(ctx context.Context) (*Plan, error) 
 	}, nil
 }
 
-func (f *PlanGenerator) CreateListCatalog(ctx context.Context) (*Plan, error) {
+func (f *PlanGenerator) CreateDeleteListCatalog(ctx context.Context) (*Plan, error) {
 	var listCatalogRequest *http.Request
 	var createCatalogRequest *http.Request
+	var deleteCatalogRequest *http.Request
 	var err error
 
+	if f.threads < 2 {
+		return nil, fmt.Errorf("threads must be greater than 1")
+	}
+
 	operations := make([][]*http.Request, f.threads)
-	checkpoints := f.repeat / 10
 	for thread := 0; thread < f.threads; thread++ {
 		for i := 0; i < f.repeat; i++ {
-			if i%checkpoints == 0 {
+			if thread == 0 {
 				switch f.catalog {
 				case "polaris":
 					listCatalogRequest, err = polaris.NewListCatalogsRequest(ctx)
@@ -140,17 +145,21 @@ func (f *PlanGenerator) CreateListCatalog(ctx context.Context) (*Plan, error) {
 				}
 				operations[thread] = append(operations[thread], listCatalogRequest)
 			} else {
+				name := uuid.New().String()
 				switch f.catalog {
 				case "polaris":
-					createCatalogRequest, err = polaris.NewCreateCatalogRequest(ctx, uuid.New().String())
+					createCatalogRequest, err = polaris.NewCreateCatalogRequest(ctx, name)
+					deleteCatalogRequest, err = polaris.NewDeleteCatalogRequest(ctx, name)
 				case "unity":
 					createCatalogRequest, err = unity.NewCreateCatalogRequest(ctx, uuid.New().String())
+					deleteCatalogRequest, err = unity.NewDeleteCatalogRequest(ctx, uuid.New().String())
 				}
 				if err != nil {
 					return nil, err
 				}
-
 				operations[thread] = append(operations[thread], createCatalogRequest)
+				operations[thread] = append(operations[thread], deleteCatalogRequest)
+
 			}
 		}
 	}

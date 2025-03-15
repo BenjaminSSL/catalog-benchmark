@@ -72,18 +72,19 @@ func (engine *Engine) Run(ctx context.Context) error {
 				progressBar.Add(1)
 				req := task.WithContext(ctx)
 				resp, err := httpClient.Do(req)
-				statusCode := resp.StatusCode
 				if err != nil {
 					switch {
 					case errors.Is(err, context.Canceled):
-						logger.Log("ERROR", taskID, statusCode, "", errors.New("Request timed out"))
+						logger.Log("ERROR", taskID, 0, "", errors.New("Request timed out"))
 					case err.(*url.Error).Timeout():
-						logger.Log("ERROR", taskID, statusCode, "", errors.New("Connection timeout"))
+						logger.Log("ERROR", taskID, 0, "", errors.New("Connection timeout"))
 					default:
-						logger.Log("ERROR", taskID, statusCode, "", errors.New("Request failed"))
+						logger.Log("ERROR", taskID, 0, "", errors.New("Request failed"))
 					}
 					continue
 				}
+
+				statusCode := resp.StatusCode
 
 				body, err := io.ReadAll(resp.Body)
 
@@ -100,7 +101,7 @@ func (engine *Engine) Run(ctx context.Context) error {
 				if statusCode >= 200 && statusCode <= 299 {
 					logger.Log("INFO", taskID, statusCode, string(body), "")
 				} else {
-					logger.Log("ERROR", taskID, statusCode, "", errors.New(fmt.Sprintf("Step %d has failed", taskID)))
+					logger.Log("ERROR", taskID, statusCode, string(body), errors.New(fmt.Sprintf("Step %d has failed", taskID)))
 				}
 
 				continue

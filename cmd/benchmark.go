@@ -142,6 +142,13 @@ func runBenchmark(experiment common.Experiment) error {
 			}
 			log.Printf("Logs merged\n")
 
+			log.Printf("Saving experiment...\n")
+			if err := saveExperiment(experiment, "./output/experiments"); err != nil {
+				log.Printf("Error saving experiment: %s\n", err)
+			}
+
+			log.Printf("Experiment saved\n")
+
 			log.Printf("Evaluating benchmark...\n")
 			evaluation, err := evaluate.Benchmark(ctx, experiment)
 			if err != nil {
@@ -155,12 +162,6 @@ func runBenchmark(experiment common.Experiment) error {
 			}
 			log.Printf("Evaluation saved\n")
 
-			log.Printf("Saving experiment...\n")
-			if err := saveExperiment(experiment, "./output/experiments"); err != nil {
-				log.Printf("Error saving experiment: %s\n", err)
-			}
-
-			log.Printf("Experiment saved\n")
 		}()
 
 		// Wait for benchmark and log merge to finish
@@ -181,7 +182,7 @@ func GenerateExecutionPlan(ctx context.Context, experiment common.Experiment) (*
 	case common.CreateUpdateCatalogBenchmark:
 		return generator.CreateUpdateCatalog(ctx)
 	case common.CreateListCatalogBenchmark:
-		return generator.CreateListCatalog(ctx)
+		return generator.CreateDeleteListCatalog(ctx)
 	default:
 		return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 	}

@@ -3,6 +3,7 @@ package cleaner
 import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/catalog/unity"
+	"benchmark/internal/common"
 	"context"
 	"log"
 	"net/http"
@@ -18,6 +19,8 @@ func NewCatalogCleaner(catalog string) *CatalogCleaner {
 
 func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 	var ids []string
+	progressBar := common.NewProgressBar(len(ids))
+
 	switch c.catalog {
 	case "polaris":
 		catalogs, err := polaris.ListCatalogs(ctx)
@@ -54,6 +57,7 @@ func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 		}
 
 		_, err = http.DefaultClient.Do(deleteCatalogRequest)
+		progressBar.Add(1)
 		if err != nil {
 			return err
 		}
