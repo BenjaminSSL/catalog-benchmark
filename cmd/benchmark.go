@@ -153,6 +153,7 @@ func runBenchmark(experiment common.Experiment) error {
 			evaluation, err := evaluate.Benchmark(ctx, experiment)
 			if err != nil {
 				log.Printf("Error evaluating benchmark: %s\n", err)
+				return
 			}
 			log.Printf("Benchmark evaluation finished\n")
 
@@ -183,6 +184,10 @@ func GenerateExecutionPlan(ctx context.Context, experiment common.Experiment) (*
 		return generator.CreateUpdateCatalog(ctx)
 	case common.CreateListCatalogBenchmark:
 		return generator.CreateDeleteListCatalog(ctx)
+	case common.UpdatePropertiesCatalogBenchmark:
+		return generator.UpdatePropertiesCatalog(ctx)
+	case common.UpdateGetCatalogBenchmark:
+		return generator.UpdateGetCatalog(ctx)
 	default:
 		return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 	}

@@ -39,10 +39,21 @@ func NewListCatalogsRequest(ctx context.Context) (*http.Request, error) {
 	return common.NewRequestBuilder().SetEndpoint("/catalogs").Build(ctx)
 }
 
-func NewUpdateCatalogRequest(ctx context.Context, name string, entityVersion int) (*http.Request, error) {
+func NewGetCatalogRequest(ctx context.Context, name string) (*http.Request, error) {
+	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx)
+}
+
+func NewUpdateCatalogRequest(ctx context.Context, name string, entityVersion int, properties map[string]string) (*http.Request, error) {
+	var catalogProperties = CatalogProperties{}
+	if properties != nil {
+		catalogProperties = CatalogProperties{
+			AdditionalProps: properties,
+		}
+	}
+
 	body := UpdateCatalogBody{
 		CurrentEntityVersion: entityVersion,
-		Properties:           CatalogProperties{},
+		Properties:           catalogProperties,
 		StorageConfigInfo: CatalogStorageConfigInfo{
 			StorageType: "FILE",
 		},

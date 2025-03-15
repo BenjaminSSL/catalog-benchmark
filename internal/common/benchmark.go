@@ -22,4 +22,6 @@ const (
 	CreateDeleteCatalogBenchmark
 	CreateUpdateCatalogBenchmark
 	CreateListCatalogBenchmark
+	UpdatePropertiesCatalogBenchmark
+	UpdateGetCatalogBenchmark
 )

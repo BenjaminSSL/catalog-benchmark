@@ -75,11 +75,11 @@ func (engine *Engine) Run(ctx context.Context) error {
 				if err != nil {
 					switch {
 					case errors.Is(err, context.Canceled):
-						logger.Log("ERROR", taskID, 0, "", errors.New("Request timed out"))
+						logger.Log("ERROR", taskID, 0, err.Error(), errors.New("Request timed out").Error())
 					case err.(*url.Error).Timeout():
-						logger.Log("ERROR", taskID, 0, "", errors.New("Connection timeout"))
+						logger.Log("ERROR", taskID, 0, err.Error(), errors.New("Connection timeout").Error())
 					default:
-						logger.Log("ERROR", taskID, 0, "", errors.New("Request failed"))
+						logger.Log("ERROR", taskID, 0, err.Error(), errors.New("Request failed").Error())
 					}
 					continue
 				}
@@ -90,7 +90,7 @@ func (engine *Engine) Run(ctx context.Context) error {
 
 				resp.Body.Close()
 				if err != nil {
-					logger.Log("ERROR", taskID, statusCode, "", errors.New("Failed to read response body"))
+					logger.Log("ERROR", taskID, statusCode, "", errors.New("Failed to read response body").Error())
 					continue
 				}
 
@@ -99,7 +99,7 @@ func (engine *Engine) Run(ctx context.Context) error {
 				}
 
 				if statusCode >= 200 && statusCode <= 299 {
-					logger.Log("INFO", taskID, statusCode, string(body), "")
+					logger.Log("INFO", taskID, statusCode, string(body), req.Method)
 				} else {
 					logger.Log("ERROR", taskID, statusCode, string(body), errors.New(fmt.Sprintf("Step %d has failed", taskID)))
 				}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"net/http"
+	"strconv"
 )
 
 type PlanGenerator struct {
@@ -104,10 +105,10 @@ func (f *PlanGenerator) CreateUpdateCatalog(ctx context.Context) (*Plan, error) 
 		for i := 0; i < f.repeat; i++ {
 			switch f.catalog {
 			case "polaris":
-				updateRequest, err = polaris.NewUpdateCatalogRequest(ctx, name, entityVersion)
+				updateRequest, err = polaris.NewUpdateCatalogRequest(ctx, name, entityVersion, nil)
 				entityVersion++
 			case "unity":
-				updateRequest, err = unity.NewUpdateCatalogRequest(ctx, name)
+				updateRequest, err = unity.NewUpdateCatalogRequest(ctx, name, nil)
 			}
 			operations[thread] = append(operations[thread], updateRequest)
 
@@ -167,4 +168,97 @@ func (f *PlanGenerator) CreateDeleteListCatalog(ctx context.Context) (*Plan, err
 	return &Plan{
 		Execution: operations,
 	}, nil
+}
+
+func (f *PlanGenerator) UpdatePropertiesCatalog(ctx context.Context) (*Plan, error) {
+	var createRequest *http.Request
+	var updateRequest *http.Request
+	var err error
+
+	setup := make([]*http.Request, 0)
+	operations := make([][]*http.Request, f.threads)
+	name := uuid.New().String()
+
+	switch f.catalog {
+	case "polaris":
+		createRequest, err = polaris.NewCreateCatalogRequest(ctx, name)
+	case "unity":
+		createRequest, err = unity.NewCreateCatalogRequest(ctx, name)
+	}
+	if err != nil {
+	}
+	setup = append(setup, createRequest)
+	for thread := 0; thread < f.threads; thread++ {
+		value := 0
+		for i := 0; i < f.repeat; i++ {
+			switch f.catalog {
+			case "polaris":
+				// The entity version will block the requests
+				//propertyName := uuid.New().String()
+				//updateRequest, err = polaris.NewUpdateCatalogRequest(ctx, name, f.threads, nil)
+				break
+			case "unity":
+				properties := map[string]string{
+					fmt.Sprintf("Thread %d", thread): strconv.Itoa(value),
+				}
+				updateRequest, err = unity.NewUpdateCatalogRequest(ctx, name, properties)
+
+			}
+
+			value++
+
+			operations[thread] = append(operations[thread], updateRequest)
+		}
+	}
+
+	return &Plan{
+		Setup:     setup,
+		Execution: operations,
+	}, nil
+}
+
+func (f *PlanGenerator) UpdateGetCatalog(ctx context.Context) (*Plan, error) {
+	var createRequest *http.Request
+	var updateRequest *http.Request
+	var getRequest *http.Request
+
+	operations := make([][]*http.Request, f.threads)
+
+	for thread := 0; thread < f.threads; thread++ {
+		name := uuid.New().String()
+		switch f.catalog {
+		case "polaris":
+			createRequest, _ = polaris.NewCreateCatalogRequest(ctx, name)
+		case "unity":
+			createRequest, _ = unity.NewCreateCatalogRequest(ctx, name)
+		}
+
+		entityVersion := 1
+		properties := map[string]string{
+			fmt.Sprintf("Thread %d", thread): strconv.Itoa(entityVersion),
+		}
+
+		operations[thread] = append(operations[thread], createRequest)
+		for i := 0; i < f.repeat; i++ {
+			switch f.catalog {
+			case "polaris":
+				updateRequest, _ = polaris.NewUpdateCatalogRequest(ctx, name, entityVersion, nil)
+				getRequest, _ = polaris.NewGetCatalogRequest(ctx, name)
+			case "unity":
+				updateRequest, _ = unity.NewUpdateCatalogRequest(ctx, name, properties)
+				getRequest, _ = unity.NewGetCatalogRequest(ctx, name)
+			}
+
+			operations[thread] = append(operations[thread], updateRequest)
+			operations[thread] = append(operations[thread], getRequest)
+
+			entityVersion++
+			properties[fmt.Sprintf("Thread %d", thread)] = strconv.Itoa(entityVersion)
+		}
+	}
+
+	return &Plan{
+		Execution: operations,
+	}, nil
+
 }

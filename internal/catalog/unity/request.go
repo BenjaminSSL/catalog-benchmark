@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand/v2"
 	"net/http"
 	"strconv"
 )
@@ -27,10 +26,10 @@ func NewDeleteCatalogRequest(ctx context.Context, name string) (*http.Request, e
 	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).Build(ctx)
 }
 
-func NewUpdateCatalogRequest(ctx context.Context, name string) (*http.Request, error) {
+func NewUpdateCatalogRequest(ctx context.Context, name string, properties map[string]string) (*http.Request, error) {
 
 	body := UpdateCatalogBody{
-		Comment: strconv.Itoa(rand.IntN(100)),
+		Properties: properties,
 	}
 
 	jsonBody, err := json.Marshal(body)
@@ -53,4 +52,8 @@ func NewListCatalogsRequest(ctx context.Context, pageToken string, maxResults in
 	}
 
 	return builder.Build(ctx)
+}
+
+func NewGetCatalogRequest(ctx context.Context, name string) (*http.Request, error) {
+	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx)
 }
