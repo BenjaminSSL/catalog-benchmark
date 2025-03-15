@@ -7,19 +7,20 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sync"
 )
 
 type CatalogCleaner struct {
 	catalog string
+	threads int
 }
 
-func NewCatalogCleaner(catalog string) *CatalogCleaner {
-	return &CatalogCleaner{catalog: catalog}
+func NewCatalogCleaner(catalog string, threads int) *CatalogCleaner {
+	return &CatalogCleaner{catalog: catalog, threads: threads}
 }
 
 func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 	var ids []string
-	progressBar := common.NewProgressBar(len(ids))
 
 	switch c.catalog {
 	case "polaris":
@@ -42,25 +43,59 @@ func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 
 	log.Printf("Removing %d catalogs", len(ids))
 
-	for _, id := range ids {
-		var deleteCatalogRequest *http.Request
-		var err error
+	progressBar := common.NewProgressBar(len(ids))
+	progressBar.SetBufferSize(10)
 
-		switch c.catalog {
-		case "polaris":
-			deleteCatalogRequest, err = polaris.NewDeleteCatalogRequest(ctx, id)
-		case "unity":
-			deleteCatalogRequest, err = unity.NewDeleteCatalogRequest(ctx, id)
-		}
-		if err != nil {
-			return err
-		}
+	idChan := make(chan string, c.threads)
+	errChan := make(chan error, len(ids))
 
-		_, err = http.DefaultClient.Do(deleteCatalogRequest)
-		progressBar.Add(1)
+	var wg sync.WaitGroup
+
+	for i := 0; i < c.threads; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for id := range idChan {
+				var deleteCatalogRequest *http.Request
+				var err error
+
+				switch c.catalog {
+				case "polaris":
+					deleteCatalogRequest, err = polaris.NewDeleteCatalogRequest(ctx, id)
+				case "unity":
+					deleteCatalogRequest, err = unity.NewDeleteCatalogRequest(ctx, id)
+				}
+				if err != nil {
+					errChan <- err
+					continue
+				}
+
+				_, err = http.DefaultClient.Do(deleteCatalogRequest)
+				if err != nil {
+					errChan <- err
+					continue
+				}
+				progressBar.Add(1)
+			}
+		}()
+	}
+
+	go func() {
+		for _, id := range ids {
+			idChan <- id
+		}
+		close(idChan)
+	}()
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
 		if err != nil {
-			return err
+			log.Printf("Error deleting catalog: %v", err)
 		}
 	}
+
+	progressBar.Flush()
 	return nil
 }

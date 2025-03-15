@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/schollz/progressbar/v3"
+	"log"
 	"sync"
 	"sync/atomic"
 )
@@ -30,8 +31,14 @@ func NewProgressBar(total int) *ProgressBar {
 			progressbar.OptionShowIts(),
 			progressbar.OptionSetItsString("request"),
 		),
-		bufferSize: uint64(100),
+		bufferSize: uint64(20),
 	}
+}
+
+func (p *ProgressBar) SetBufferSize(size uint64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.bufferSize = size
 }
 
 func (p *ProgressBar) Add(n int) {
@@ -44,6 +51,10 @@ func (p *ProgressBar) Add(n int) {
 func (p *ProgressBar) Flush() {
 	p.mu.Lock()
 	val := p.buffer.Swap(0)
-	p.bar.Add(int(val))
+	err := p.bar.Add(int(val))
+	if err != nil {
+		log.Printf("Error saving buffer: %s\n", err)
+		return
+	}
 	p.mu.Unlock()
 }

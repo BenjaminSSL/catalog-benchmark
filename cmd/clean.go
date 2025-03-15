@@ -18,26 +18,29 @@ func newCleanCommand() *Command {
 	config := struct {
 		Catalog string
 		Entity  string
+		Threads int
 	}{
 		// Default values
 		Catalog: "polaris",
 		Entity:  "catalog",
+		Threads: 10,
 	}
 
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.StringVar(&config.Entity, "entity", config.Entity, "Entity")
+	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 	return &Command{
 		Name:        "clean",
 		Description: "Clean up a specific entity in the catalog",
 		Flags:       flags,
 		Handler: func() error {
 			// TODO: validate the flags
-			return runClean(config.Catalog, config.Entity)
+			return runClean(config.Catalog, config.Entity, config.Threads)
 		},
 	}
 }
 
-func runClean(catalog string, entity string) error {
+func runClean(catalog string, entity string, threads int) error {
 	config, err := common.GetRequestConfigFromEnv(catalog)
 	if err != nil {
 		return err
@@ -47,7 +50,7 @@ func runClean(catalog string, entity string) error {
 	ctx = context.WithValue(ctx, "config", config)
 
 	defer cancel()
-	catalogCleaner := cleaner.NewCatalogCleaner(catalog)
+	catalogCleaner := cleaner.NewCatalogCleaner(catalog, threads)
 
 	switch entity {
 	case "catalog":
