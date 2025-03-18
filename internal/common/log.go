@@ -3,12 +3,13 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type RoutineBatchLogger struct {
@@ -153,4 +154,28 @@ func DeleteLogs(logDir string) error {
 	}
 
 	return nil
+}
+
+func LoadLogs(experimentID string) ([]LogEntry, error) {
+	file, err := os.Open(filepath.Join("./output/logs", fmt.Sprintf("%s.jsonl", experimentID)))
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	var logs []LogEntry
+	for {
+		var log LogEntry
+		if err := decoder.Decode(&log); err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+
+		logs = append(logs, log)
+	}
+
+	return logs, nil
 }

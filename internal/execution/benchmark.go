@@ -152,8 +152,8 @@ func (f *PlanGenerator) CreateDeleteListCatalog(ctx context.Context) (*Plan, err
 					createCatalogRequest, err = polaris.NewCreateCatalogRequest(ctx, name)
 					deleteCatalogRequest, err = polaris.NewDeleteCatalogRequest(ctx, name)
 				case "unity":
-					createCatalogRequest, err = unity.NewCreateCatalogRequest(ctx, uuid.New().String())
-					deleteCatalogRequest, err = unity.NewDeleteCatalogRequest(ctx, uuid.New().String())
+					createCatalogRequest, err = unity.NewCreateCatalogRequest(ctx, name)
+					deleteCatalogRequest, err = unity.NewDeleteCatalogRequest(ctx, name)
 				}
 				if err != nil {
 					return nil, err

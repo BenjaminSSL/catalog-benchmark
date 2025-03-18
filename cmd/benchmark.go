@@ -182,7 +182,7 @@ func GenerateExecutionPlan(ctx context.Context, experiment common.Experiment) (*
 		return generator.CreateDeleteCatalog(ctx)
 	case common.CreateUpdateCatalogBenchmark:
 		return generator.CreateUpdateCatalog(ctx)
-	case common.CreateListCatalogBenchmark:
+	case common.CreateDeleteListCatalogBenchmark:
 		return generator.CreateDeleteListCatalog(ctx)
 	case common.UpdatePropertiesCatalogBenchmark:
 		return generator.UpdatePropertiesCatalog(ctx)

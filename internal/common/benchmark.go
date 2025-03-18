@@ -21,7 +21,7 @@ const (
 	CreateCatalogBenchmark BenchmarkType = iota + 1
 	CreateDeleteCatalogBenchmark
 	CreateUpdateCatalogBenchmark
-	CreateListCatalogBenchmark
+	CreateDeleteListCatalogBenchmark
 	UpdatePropertiesCatalogBenchmark
 	UpdateGetCatalogBenchmark
 )
