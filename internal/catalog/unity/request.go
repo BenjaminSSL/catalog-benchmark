@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func NewCreateCatalogRequest(ctx context.Context, name string) (*http.Request, error) {
+func NewCreateCatalogRequest(ctx context.Context, name string) *http.Request {
 	body := CreateCatalogBody{
 		Name: name,
 	}
@@ -22,25 +22,22 @@ func NewCreateCatalogRequest(ctx context.Context, name string) (*http.Request, e
 	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build(ctx)
 }
 
-func NewDeleteCatalogRequest(ctx context.Context, name string) (*http.Request, error) {
+func NewDeleteCatalogRequest(ctx context.Context, name string) *http.Request {
 	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).Build(ctx)
 }
 
-func NewUpdateCatalogRequest(ctx context.Context, name string, properties map[string]string) (*http.Request, error) {
+func NewUpdateCatalogRequest(ctx context.Context, name string, properties map[string]string) *http.Request {
 
 	body := UpdateCatalogBody{
 		Properties: properties,
 	}
 
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		panic(err)
-	}
+	jsonBody, _ := json.Marshal(body)
 
 	return common.NewRequestBuilder().SetMethod("PATCH").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).SetJSONBody(jsonBody).Build(ctx)
 }
 
-func NewListCatalogsRequest(ctx context.Context, pageToken string, maxResults int) (*http.Request, error) {
+func NewListCatalogsRequest(ctx context.Context, pageToken string, maxResults int) *http.Request {
 
 	builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint("/catalogs")
 
@@ -54,6 +51,6 @@ func NewListCatalogsRequest(ctx context.Context, pageToken string, maxResults in
 	return builder.Build(ctx)
 }
 
-func NewGetCatalogRequest(ctx context.Context, name string) (*http.Request, error) {
+func NewGetCatalogRequest(ctx context.Context, name string) *http.Request {
 	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx)
 }

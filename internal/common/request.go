@@ -110,7 +110,7 @@ func (b *RequestBuilder) buildQuery() string {
 	return query
 }
 
-func (b *RequestBuilder) Build(ctx context.Context) (*http.Request, error) {
+func (b *RequestBuilder) Build(ctx context.Context) *http.Request {
 	config := GetConfig(ctx)
 	baseURL := fmt.Sprintf("http://%s%s", config.Host, path.Clean(config.Path))
 	endpoint := path.Join("/", b.endpoint)
@@ -121,16 +121,13 @@ func (b *RequestBuilder) Build(ctx context.Context) (*http.Request, error) {
 		url = url + "?" + b.buildQuery()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, b.method, url, bytes.NewBuffer(b.body))
-	if err != nil {
-		return nil, err
-	}
+	req, _ := http.NewRequestWithContext(ctx, b.method, url, bytes.NewBuffer(b.body))
 
 	req.Header = b.headers
 
 	if config.Token != "" {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.Token))
 	}
-	return req, nil
+	return req
 
 }

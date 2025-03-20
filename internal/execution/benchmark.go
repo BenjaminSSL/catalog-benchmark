@@ -3,52 +3,126 @@ package execution
 import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/catalog/unity"
+	"benchmark/internal/common"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"io"
 	"net/http"
+	"net/url"
 	"strconv"
+	"sync"
+	"time"
 )
 
-type PlanGenerator struct {
-	threads int
-	repeat  int
-	catalog string
+type BenchmarkEngine struct {
+	ExperimentID uuid.UUID
+	threads      int
+	duration     time.Duration
+	wg           sync.WaitGroup
+	catalog      string
 }
 
-func NewExecutionPlanGenerator(catalog string, threads int, repeat int) *PlanGenerator {
-
-	return &PlanGenerator{
-		catalog: catalog,
-		threads: threads,
-		repeat:  repeat,
+func NewBenchmarkEngine(catalog string, threads int, duration time.Duration) *BenchmarkEngine {
+	return &BenchmarkEngine{
+		catalog:  catalog,
+		threads:  threads,
+		duration: duration,
 	}
 }
 
-func (f *PlanGenerator) CreateCatalog(ctx context.Context) (*Plan, error) {
-	var req *http.Request
-	var err error
-
-	operations := make([][]*http.Request, f.threads)
-	for thread := 0; thread < f.threads; thread++ {
-		for i := 0; i < f.repeat; i++ {
-			name := uuid.New().String()
-
-			switch f.catalog {
-			case "polaris":
-				req, err = polaris.NewCreateCatalogRequest(ctx, name)
-			case "unity":
-				req, err = unity.NewCreateCatalogRequest(ctx, name)
-			}
-			if err != nil {
-				return nil, err
-			}
-			operations[thread] = append(operations[thread], req)
-		}
+func getHttpClient() *http.Client {
+	return &http.Client{
+		Timeout: time.Second * 30,
+		Transport: &http.Transport{
+			MaxIdleConns:        10000,
+			MaxIdleConnsPerHost: 1000,
+			MaxConnsPerHost:     1000,
+			DisableKeepAlives:   false,
+			IdleConnTimeout:     90 * time.Second,
+			TLSHandshakeTimeout: 10 * time.Second,
+		},
 	}
-	return &Plan{
-		Execution: operations,
-	}, nil
+}
+
+func getLogger() *common.RoutineBatchLogger {
+	logger, _ := common.NewRoutineBatchLogger("./output/logs/tmp", e.ExperimentID, thread, 20)
+
+	return logger
+
+}
+
+func (e *BenchmarkEngine) CreateCatalog(ctx context.Context) error {
+
+	client := getHttpClient()
+
+	for thread := 0; thread < e.threads; thread++ {
+		e.wg.Add(1)
+		go func(thread int) {
+			defer e.wg.Done()
+
+			logger := getLogger()
+			defer logger.Close()
+			step := 0
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				var resp *http.Response
+				var err error
+				name := uuid.New().String()
+				switch e.catalog {
+				case "polaris":
+					resp, err = client.Do(polaris.NewCreateCatalogRequest(ctx, name))
+				case "unity":
+					resp, err = client.Do(unity.NewCreateCatalogRequest(ctx, name))
+				}
+
+				if err != nil {
+					switch {
+					case errors.Is(err, context.Canceled):
+						logger.Log("ERROR", step, 0, err.Error(), errors.New("Request timed out").Error())
+					case err.(*url.Error).Timeout():
+						logger.Log("ERROR", step, 0, err.Error(), errors.New("Connection timeout").Error())
+					default:
+						logger.Log("ERROR", step, 0, err.Error(), errors.New("Request failed").Error())
+					}
+					continue
+				}
+
+				statusCode := resp.StatusCode
+
+				body, err := io.ReadAll(resp.Body)
+
+				resp.Body.Close()
+				if err != nil {
+					logger.Log("ERROR", step, statusCode, "", errors.New("Failed to read response body").Error())
+					continue
+				}
+
+				if len(body) > 1000 {
+					body = body[:1000]
+				}
+
+				if statusCode >= 200 && statusCode <= 299 {
+					logger.Log("INFO", step, statusCode, string(body), "")
+				} else {
+					logger.Log("ERROR", step, statusCode, string(body), errors.New(fmt.Sprintf("Step %d has failed", taskID)))
+
+
+
+
+			}
+
+		}()
+	}
+
+	return nil
+
 }
 
 func (f *PlanGenerator) CreateDeleteCatalog(ctx context.Context) (*Plan, error) {
