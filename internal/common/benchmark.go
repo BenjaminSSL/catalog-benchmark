@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/google/uuid"
+	"os"
 	"time"
 )
 
@@ -25,3 +26,10 @@ const (
 	UpdatePropertiesCatalogBenchmark
 	UpdateGetCatalogBenchmark
 )
+
+func GetEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return fallback
+}

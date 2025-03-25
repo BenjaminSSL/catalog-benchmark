@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"benchmark/internal/cleaner"
-	"benchmark/internal/common"
 	"context"
 	"flag"
 )
@@ -41,13 +40,8 @@ func newCleanCommand() *Command {
 }
 
 func runClean(catalog string, entity string, threads int) error {
-	config, err := common.GetRequestConfigFromEnv(catalog)
-	if err != nil {
-		return err
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	ctx = context.WithValue(ctx, "config", config)
 
 	defer cancel()
 	catalogCleaner := cleaner.NewCatalogCleaner(catalog, threads)

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/common"
 	"benchmark/internal/evaluate"
 	"benchmark/internal/execution"
@@ -18,6 +19,8 @@ import (
 	"time"
 )
 
+var token string
+
 func init() {
 	RegisterCommand(newBenchmarkCommand())
 }
@@ -31,21 +34,18 @@ func newBenchmarkCommand() *Command {
 		BenchmarkID  int
 		Catalog      string
 		Threads      int
-		Repeat       int
 	}{
 		// Default values
 		ExperimentID: uuid.NewString(),
 		BenchmarkID:  1,
 		Catalog:      "polaris",
 		Threads:      1,
-		Repeat:       1,
 	}
 
 	flags.StringVar(&config.ExperimentID, "experiment-id", config.ExperimentID, "Experiment ID")
 	flags.IntVar(&config.BenchmarkID, "benchmark-id", config.BenchmarkID, "Benchmark ID")
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
-	flags.IntVar(&config.Repeat, "repeat", config.Repeat, "Repeats")
 
 	experimentID, err := uuid.Parse(config.ExperimentID)
 	if err != nil {
@@ -58,14 +58,12 @@ func newBenchmarkCommand() *Command {
 		Description: "Run the benchmark driver for the catalogs",
 		Flags:       flags,
 		Handler: func() error {
-			// TODO: validate the flags
 			benchmarkType := common.BenchmarkType(config.BenchmarkID)
 			experiment := common.Experiment{
 				ID:          experimentID,
 				BenchmarkID: benchmarkType,
 				Catalog:     config.Catalog,
 				Threads:     config.Threads,
-				Repeat:      config.Repeat,
 			}
 			return runBenchmark(experiment)
 		},
@@ -75,39 +73,50 @@ func newBenchmarkCommand() *Command {
 func runBenchmark(experiment common.Experiment) error {
 	log.Printf("Starting experiment %s with benchmark scenario %d", experiment.ID, experiment.BenchmarkID)
 
-	config, err := common.GetRequestConfigFromEnv(experiment.Catalog)
-	if err != nil {
-		return err
+	if experiment.Catalog == "polaris" {
+		token, err := common.FetchPolarisToken()
+		if err != nil {
+			return err
+		}
+
+		polaris.SetToken(token)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	ctx = context.WithValue(ctx, "config", config)
 
 	defer cancel()
-
-	executionPlans, err := GenerateExecutionPlan(ctx, experiment)
-	if err != nil {
-		log.Printf("Error getting execution scenario: %s\n", err)
-		return err
-	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	done := make(chan error)
 
-	engine := execution.NewExecutionEngine(experiment.ID, executionPlans)
+	engine := execution.NewBenchmarkEngine(experiment.ID.String(), experiment.Catalog, experiment.Threads, time.Second*4)
 	startTime := time.Now()
 	experiment.StartTimestamp = startTime
 
 	defer common.DeleteLogs("./output/logs/tmp")
 
-	if err != nil {
-		return err
-	}
-
 	go func() {
-		done <- engine.Run(ctx)
+		switch experiment.BenchmarkID {
+		case common.CreateCatalogBenchmark:
+			configs := []execution.WorkerConfig{{
+				Func:    engine.CreateCatalogWorker,
+				Threads: experiment.Threads,
+			}}
+			done <- engine.RunWorkers(ctx, configs)
+		case common.CreateDeleteCatalogBenchmark:
+			configs := []execution.WorkerConfig{{
+				Func:    engine.CreateDeleteCatalogWorker,
+				Threads: experiment.Threads,
+			}}
+			done <- engine.RunWorkers(ctx, configs)
+
+		default:
+			done <- nil
+
+		}
+
 	}()
 
 	go func() {
@@ -168,28 +177,6 @@ func runBenchmark(experiment common.Experiment) error {
 		// Wait for benchmark and log merge to finish
 		wg.Wait()
 		return nil
-	}
-
-}
-
-func GenerateExecutionPlan(ctx context.Context, experiment common.Experiment) (*execution.Plan, error) {
-	generator := execution.NewExecutionPlanGenerator(experiment.Catalog, experiment.Threads, experiment.Repeat)
-
-	switch experiment.BenchmarkID {
-	case common.CreateCatalogBenchmark:
-		return generator.CreateCatalog(ctx)
-	case common.CreateDeleteCatalogBenchmark:
-		return generator.CreateDeleteCatalog(ctx)
-	case common.CreateUpdateCatalogBenchmark:
-		return generator.CreateUpdateCatalog(ctx)
-	case common.CreateDeleteListCatalogBenchmark:
-		return generator.CreateDeleteListCatalog(ctx)
-	case common.UpdatePropertiesCatalogBenchmark:
-		return generator.UpdatePropertiesCatalog(ctx)
-	case common.UpdateGetCatalogBenchmark:
-		return generator.UpdateGetCatalog(ctx)
-	default:
-		return nil, fmt.Errorf("unknown benchmark %v for catalog: %s", experiment.BenchmarkID, experiment.Catalog)
 	}
 
 }

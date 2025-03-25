@@ -19,10 +19,7 @@ func ListCatalogs(ctx context.Context, maxResults int) ([]Catalog, error) {
 
 		}
 
-		req, err := NewListCatalogsRequest(ctx, nextPageToken, maxResults)
-		if err != nil {
-			return nil, err
-		}
+		req := NewListCatalogsRequest(ctx, nextPageToken, maxResults)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {

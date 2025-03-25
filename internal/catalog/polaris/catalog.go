@@ -8,10 +8,7 @@ import (
 )
 
 func ListCatalogs(ctx context.Context) ([]Catalog, error) {
-	req, err := NewListCatalogsRequest(ctx)
-	if err != nil {
-		return nil, err
-	}
+	req := NewListCatalogsRequest(ctx)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

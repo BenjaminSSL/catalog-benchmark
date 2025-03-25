@@ -63,9 +63,9 @@ func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 
 				switch c.catalog {
 				case "polaris":
-					deleteCatalogRequest, err = polaris.NewDeleteCatalogRequest(ctx, id)
+					deleteCatalogRequest = polaris.NewDeleteCatalogRequest(ctx, id)
 				case "unity":
-					deleteCatalogRequest, err = unity.NewDeleteCatalogRequest(ctx, id)
+					deleteCatalogRequest = unity.NewDeleteCatalogRequest(ctx, id)
 				}
 				if err != nil {
 					errChan <- err

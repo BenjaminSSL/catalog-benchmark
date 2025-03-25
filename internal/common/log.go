@@ -8,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type RoutineBatchLogger struct {
@@ -31,7 +29,7 @@ type LogEntry struct {
 	Data         any    `json:"data"`
 }
 
-func NewRoutineBatchLogger(logDir string, experimentID uuid.UUID, theadID int, batchSize int) (*RoutineBatchLogger, error) {
+func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batchSize int) (*RoutineBatchLogger, error) {
 	// Creates the log directory, if it already exists it does not create a new directory
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create the log directory: %w", err)
@@ -45,7 +43,7 @@ func NewRoutineBatchLogger(logDir string, experimentID uuid.UUID, theadID int, b
 	}
 
 	return &RoutineBatchLogger{
-		ExperimentID: experimentID.String(),
+		ExperimentID: experimentID,
 		TheadID:      theadID,
 		file:         file,
 		buffer:       make([]LogEntry, 0, batchSize),

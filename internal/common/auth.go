@@ -9,15 +9,16 @@ import (
 	"strings"
 )
 
-func FetchPolarisToken(host string) (string, error) {
+func FetchPolarisToken() (string, error) {
 	id := os.Getenv("POLARIS_CLIENT_ID")
 	secret := os.Getenv("POLARIS_CLIENT_SECRET")
+	host := os.Getenv("POLARIS_HOST")
 
 	if id == "" || secret == "" {
 		return "", fmt.Errorf("client-id and client-secret variables must be set")
 	}
 
-	oauthURL := fmt.Sprintf("http://%s/api/catalog/v1/oauth/tokens", host)
+	oauthURL := fmt.Sprintf("http://%s//api/catalog/v1/oauth/tokens", host)
 
 	form := url.Values{}
 	form.Set("grant_type", "client_credentials")

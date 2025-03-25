@@ -4,52 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"path"
 )
 
 type RequestParams interface {
 	Validate() error
-}
-type RequestConfig struct {
-	Host  string
-	Token string
-	Path  string // The default API path to be used when no specific endpoint is provided
-}
-
-func GetConfig(ctx context.Context) RequestConfig {
-	if config, ok := ctx.Value("config").(RequestConfig); ok {
-		return config
-	}
-	return RequestConfig{}
-}
-
-func GetRequestConfigFromEnv(catalogName string) (RequestConfig, error) {
-	var host string
-	var token string
-	var defaultPath string
-	var err error
-
-	// Set up the catalogName and their factory
-	if catalogName == "polaris" {
-		host = os.Getenv("POLARIS_HOST")
-		defaultPath = os.Getenv("POLARIS_PATH")
-
-		token, err = FetchPolarisToken(host)
-		if err != nil {
-			return RequestConfig{}, err
-		}
-
-		log.Printf("Fetched the token from Polaris")
-
-	} else if catalogName == "unity" {
-		host = os.Getenv("UNITY_HOST")
-		defaultPath = os.Getenv("UNITY_PATH")
-	}
-
-	return RequestConfig{host, token, defaultPath}, nil
 }
 
 type RequestBuilder struct {
@@ -110,9 +70,8 @@ func (b *RequestBuilder) buildQuery() string {
 	return query
 }
 
-func (b *RequestBuilder) Build(ctx context.Context) *http.Request {
-	config := GetConfig(ctx)
-	baseURL := fmt.Sprintf("http://%s%s", config.Host, path.Clean(config.Path))
+func (b *RequestBuilder) Build(ctx context.Context, host string, resource string, token string) *http.Request {
+	baseURL := fmt.Sprintf("http://%s%s", host, path.Clean(resource))
 	endpoint := path.Join("/", b.endpoint)
 
 	url := fmt.Sprintf("%s%s", baseURL, endpoint)
@@ -125,8 +84,8 @@ func (b *RequestBuilder) Build(ctx context.Context) *http.Request {
 
 	req.Header = b.headers
 
-	if config.Token != "" {
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.Token))
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
 	return req
 

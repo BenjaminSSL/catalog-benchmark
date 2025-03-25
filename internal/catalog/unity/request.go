@@ -9,6 +9,11 @@ import (
 	"strconv"
 )
 
+var (
+	Host = common.GetEnv("UNITY_HOST", "localhost:8180")
+	Path = common.GetEnv("UNITY_PATH", "/api/2.1/unity-catalog")
+)
+
 func NewCreateCatalogRequest(ctx context.Context, name string) *http.Request {
 	body := CreateCatalogBody{
 		Name: name,
@@ -19,11 +24,11 @@ func NewCreateCatalogRequest(ctx context.Context, name string) *http.Request {
 		panic(err)
 	}
 
-	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build(ctx)
+	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build(ctx, Host, Path, "")
 }
 
 func NewDeleteCatalogRequest(ctx context.Context, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).Build(ctx)
+	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).Build(ctx, Host, Path, "")
 }
 
 func NewUpdateCatalogRequest(ctx context.Context, name string, properties map[string]string) *http.Request {
@@ -34,7 +39,7 @@ func NewUpdateCatalogRequest(ctx context.Context, name string, properties map[st
 
 	jsonBody, _ := json.Marshal(body)
 
-	return common.NewRequestBuilder().SetMethod("PATCH").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).SetJSONBody(jsonBody).Build(ctx)
+	return common.NewRequestBuilder().SetMethod("PATCH").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).SetJSONBody(jsonBody).Build(ctx, Host, Path, "")
 }
 
 func NewListCatalogsRequest(ctx context.Context, pageToken string, maxResults int) *http.Request {
@@ -48,9 +53,9 @@ func NewListCatalogsRequest(ctx context.Context, pageToken string, maxResults in
 		builder.AddQueryParam("max_results", strconv.Itoa(maxResults))
 	}
 
-	return builder.Build(ctx)
+	return builder.Build(ctx, Host, Path, "")
 }
 
 func NewGetCatalogRequest(ctx context.Context, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx)
+	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, Path, "")
 }
