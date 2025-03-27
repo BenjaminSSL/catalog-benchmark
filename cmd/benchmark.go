@@ -19,8 +19,6 @@ import (
 	"time"
 )
 
-var token string
-
 func init() {
 	RegisterCommand(newBenchmarkCommand())
 }
