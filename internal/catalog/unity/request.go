@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	Host = common.GetEnv("UNITY_HOST", "localhost:8180")
+	Host = common.GetEnv("UNITY_HOST", "localhost:8080")
 	Path = common.GetEnv("UNITY_PATH", "/api/2.1/unity-catalog")
 )
 
@@ -28,7 +28,7 @@ func NewCreateCatalogRequest(ctx context.Context, name string) *http.Request {
 }
 
 func NewDeleteCatalogRequest(ctx context.Context, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).Build(ctx, Host, Path, "")
+	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("catalogs/%s", name)).AddQueryParam("force", "true").Build(ctx, Host, Path, "")
 }
 
 func NewUpdateCatalogRequest(ctx context.Context, name string, properties map[string]string) *http.Request {
@@ -58,4 +58,17 @@ func NewListCatalogsRequest(ctx context.Context, pageToken string, maxResults in
 
 func NewGetCatalogRequest(ctx context.Context, name string) *http.Request {
 	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, Path, "")
+}
+
+func NewCreateSchemaRequest(ctx context.Context, name string, catalogName string) *http.Request {
+	body := CreateNamespaceBody{
+		Name:        name,
+		CatalogName: catalogName,
+		Comment:     "",
+		Properties:  map[string]string{},
+	}
+
+	jsonBody, _ := json.Marshal(body)
+
+	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/schemas").SetJSONBody(jsonBody).Build(ctx, Host, Path, "")
 }

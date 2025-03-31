@@ -23,7 +23,7 @@ type Evaluation struct {
 func Benchmark(ctx context.Context, experiment common.Experiment) (*Evaluation, error) {
 
 	switch experiment.BenchmarkID {
-	case common.CreateCatalogBenchmark:
+	case common.CreateBenchmark:
 		return createCatalogBenchmark(ctx, experiment)
 	case common.UpdateGetCatalogBenchmark:
 		return updateGetCatalogBenchmark(ctx, experiment)

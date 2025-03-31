@@ -77,6 +77,7 @@ func (c *CatalogCleaner) CleanCatalog(ctx context.Context) error {
 					errChan <- err
 					continue
 				}
+				log.Printf("Removing catalog %s", id, resp.StatusCode)
 
 				resp.Body.Close()
 

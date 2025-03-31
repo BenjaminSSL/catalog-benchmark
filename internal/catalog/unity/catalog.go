@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -44,6 +45,7 @@ func ListCatalogs(ctx context.Context, maxResults int) ([]Catalog, error) {
 		nextPageToken = result.NextPageToken
 		if nextPageToken == "" {
 			// No more pages, break out of the loop
+			log.Println(len(allCatalogs))
 			break
 		}
 	}

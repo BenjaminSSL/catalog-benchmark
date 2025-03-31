@@ -28,3 +28,10 @@ type UpdateCatalogBody struct {
 	Properties map[string]string `json:"properties,omitempty"`
 	NewName    string            `json:"new_name,omitempty"`
 }
+
+type CreateNamespaceBody struct {
+	Name        string            `json:"name"`
+	CatalogName string            `json:"catalog_name"`
+	Comment     string            `json:"comment"`
+	Properties  map[string]string `json:"properties"`
+}

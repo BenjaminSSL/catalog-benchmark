@@ -32,18 +32,24 @@ func newBenchmarkCommand() *Command {
 		BenchmarkID  int
 		Catalog      string
 		Threads      int
+		Entity       string
+		Duration     int
 	}{
 		// Default values
 		ExperimentID: uuid.NewString(),
 		BenchmarkID:  1,
 		Catalog:      "polaris",
 		Threads:      1,
+		Entity:       "catalog",
+		Duration:     20,
 	}
 
 	flags.StringVar(&config.ExperimentID, "experiment-id", config.ExperimentID, "Experiment ID")
 	flags.IntVar(&config.BenchmarkID, "benchmark-id", config.BenchmarkID, "Benchmark ID")
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
+	flags.StringVar(&config.Entity, "entity", config.Entity, "Entity")
+	flags.IntVar(&config.Duration, "duration", config.Duration, "Duration (seconds)")
 
 	experimentID, err := uuid.Parse(config.ExperimentID)
 	if err != nil {
@@ -57,11 +63,14 @@ func newBenchmarkCommand() *Command {
 		Flags:       flags,
 		Handler: func() error {
 			benchmarkType := common.BenchmarkType(config.BenchmarkID)
+			entityType := common.EntityType(config.Entity)
 			experiment := common.Experiment{
 				ID:          experimentID,
 				BenchmarkID: benchmarkType,
 				Catalog:     config.Catalog,
 				Threads:     config.Threads,
+				Duration:    time.Duration(config.Duration) * time.Second,
+				Entity:      entityType,
 			}
 			return runBenchmark(experiment)
 		},
@@ -69,7 +78,7 @@ func newBenchmarkCommand() *Command {
 }
 
 func runBenchmark(experiment common.Experiment) error {
-	log.Printf("Starting experiment %s with benchmark scenario %d", experiment.ID, experiment.BenchmarkID)
+	log.Printf("Starting experiment %s with benchmark scenario %d on entity %s", experiment.ID, experiment.BenchmarkID, experiment.Entity)
 
 	if experiment.Catalog == "polaris" {
 		token, err := common.FetchPolarisToken()
@@ -89,7 +98,7 @@ func runBenchmark(experiment common.Experiment) error {
 
 	done := make(chan error)
 
-	engine := execution.NewBenchmarkEngine(experiment.ID.String(), experiment.Catalog, experiment.Threads, time.Second*4)
+	engine := execution.NewBenchmarkEngine(experiment.ID.String(), experiment.Catalog, experiment.Threads, experiment.Duration)
 	startTime := time.Now()
 	experiment.StartTimestamp = startTime
 
@@ -97,22 +106,43 @@ func runBenchmark(experiment common.Experiment) error {
 
 	go func() {
 		switch experiment.BenchmarkID {
-		case common.CreateCatalogBenchmark:
-			configs := []execution.WorkerConfig{{
-				Func:    engine.CreateCatalogWorker,
-				Threads: experiment.Threads,
-			}}
-			done <- engine.RunWorkers(ctx, configs)
-		case common.CreateDeleteCatalogBenchmark:
-			configs := []execution.WorkerConfig{{
-				Func:    engine.CreateDeleteCatalogWorker,
-				Threads: experiment.Threads,
-			}}
-			done <- engine.RunWorkers(ctx, configs)
+		case common.CreateBenchmark:
+			switch experiment.Entity {
+			case common.CatalogEntity:
+				done <- engine.RunCreateCatalog(ctx)
+			case common.SchemaEntity:
+				done <- engine.RunCreateSchema(ctx)
+			}
+		case common.CreateDeleteBenchmark:
+			switch experiment.Entity {
+			case common.CatalogEntity:
+				done <- engine.RunCreateDeleteCatalog(ctx)
+			case common.PrincipalEntity:
+				done <- engine.RunCreateDeletePrincipal(ctx)
+			case common.SchemaEntity:
+				done <- engine.RunCreateDeleteSchema(ctx)
+			}
+		case common.CreateUpdateCatalogBenchmark:
+			switch experiment.Entity {
+			case common.CatalogEntity:
+				done <- engine.RunCreateUpdateCatalog(ctx)
+			case common.PrincipalEntity:
+				done <- engine.RunCreateUpdatePrincipal(ctx)
+			case common.SchemaEntity:
+				done <- engine.RunCreateDeleteSchema(ctx)
+			}
+		case common.CreateDeleteListBenchmark:
+			switch experiment.Entity {
+			case common.CatalogEntity:
+				done <- engine.RunCreateDeleteListCatalog(ctx)
+			case common.PrincipalEntity:
+				done <- engine.RunCreateDeleteListPrincipal(ctx)
+			case common.SchemaEntity:
+				done <- engine.RunCreateDeleteListSchema(ctx)
+			}
 
 		default:
 			done <- nil
-
 		}
 
 	}()

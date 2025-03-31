@@ -71,6 +71,17 @@ func createCatalogRequest(catalog string, client *http.Client, name string) (*ht
 	}
 }
 
+func createPrincipalRequest(catalog string, client *http.Client, name string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewCreatePrincipalRequest(ctx, name))
+	default:
+		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
+	}
+}
+
 func deleteCatalogRequest(catalog string, client *http.Client, name string) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -79,6 +90,99 @@ func deleteCatalogRequest(catalog string, client *http.Client, name string) (*ht
 		return client.Do(polaris.NewDeleteCatalogRequest(ctx, name))
 	case "unity":
 		return client.Do(unity.NewDeleteCatalogRequest(ctx, name))
+	default:
+		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
+	}
+}
+
+func deletePrincipalRequest(catalog string, client *http.Client, name string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewDeletePrincipalRequest(ctx, name))
+	default:
+		panic(fmt.Errorf("unknown catalog type: %s", catalog))
+	}
+}
+
+func createSchemaRequest(catalog string, client *http.Client, name string, catalogName string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewCreateNamespaceRequest(ctx, name, catalogName))
+	case "unity":
+		return client.Do(unity.NewCreateSchemaRequest(ctx, name, catalogName))
+	default:
+		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
+	}
+}
+
+func deleteSchemaRequest(catalog string, client *http.Client, name string, catalogName string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewDeleteNamespaceRequest(ctx, name, catalogName))
+	default:
+		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
+
+	}
+}
+func updateCatalogRequest(catalog string, client *http.Client, name string, entityVersion int) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewUpdateCatalogRequest(ctx, name, entityVersion, nil))
+	case "unity":
+		return client.Do(unity.NewUpdateCatalogRequest(ctx, name, nil))
+	default:
+		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
+	}
+}
+
+func updatePrincipalRequest(catalog string, client *http.Client, name string, entityVersion int) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewUpdatePrincipalRequest(ctx, name, entityVersion, nil))
+	default:
+		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
+	}
+}
+
+func listCatalogsRequest(catalog string, client *http.Client) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewListCatalogsRequest(ctx))
+	case "unity":
+		return client.Do(unity.NewListCatalogsRequest(ctx, "", 100))
+	default:
+		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
+	}
+}
+func listPrincipalsRequest(catalog string, client *http.Client) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewListPrincipalsRequest(ctx))
+	default:
+		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
+	}
+}
+
+func listSchemasRequest(catalog string, client *http.Client, catalogName string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	switch catalog {
+	case "polaris":
+		return client.Do(polaris.NewListNamespacesRequest(ctx, catalogName))
 	default:
 		return nil, fmt.Errorf("unknown catalog type: %s", catalog)
 	}

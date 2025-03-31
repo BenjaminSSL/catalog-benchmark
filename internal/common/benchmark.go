@@ -14,17 +14,26 @@ type Experiment struct {
 	Repeat         int           `json:"repeat"`
 	StartTimestamp time.Time     `json:"start_timestamp"`
 	EndTimestamp   time.Time     `json:"end_timestamp"`
+	Duration       time.Duration `json:"duration"`
+	Entity         EntityType    `json:"entity"`
 }
 
 type BenchmarkType int
+type EntityType string
 
 const (
-	CreateCatalogBenchmark BenchmarkType = iota + 1
-	CreateDeleteCatalogBenchmark
+	CreateBenchmark BenchmarkType = iota + 1
+	CreateDeleteBenchmark
 	CreateUpdateCatalogBenchmark
-	CreateDeleteListCatalogBenchmark
+	CreateDeleteListBenchmark
 	UpdatePropertiesCatalogBenchmark
 	UpdateGetCatalogBenchmark
+)
+
+const (
+	CatalogEntity   EntityType = "catalog"
+	PrincipalEntity EntityType = "principal"
+	SchemaEntity    EntityType = "schema"
 )
 
 func GetEnv(key, fallback string) string {

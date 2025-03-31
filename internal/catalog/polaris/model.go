@@ -35,6 +35,11 @@ type CreateCatalogBody struct {
 	Catalog Catalog `json:"catalog"`
 }
 
+type CreateNamespaceBody struct {
+	Namespace  []string          `json:"namespace"`
+	Properties map[string]string `json:"properties"`
+}
+
 type CreateSchemaBody struct{}
 
 type UpdateCatalogBody struct {
@@ -43,8 +48,23 @@ type UpdateCatalogBody struct {
 	StorageConfigInfo    CatalogStorageConfigInfo `json:"storageConfigInfo"`
 }
 
+type UpdatePrincipalBody struct {
+	CurrentEntityVersion int               `json:"currentEntityVersion"`
+	Properties           map[string]string `json:"properties"`
+}
+
 // Responses
 
 type ListCatalogsResponse struct {
 	Catalogs []Catalog `json:"catalogs"`
+}
+
+type ListNamespacesResponse struct {
+	Namespaces    [][]string `json:"namespaces"`
+	NextPageToken string     `json:"next-page-token"`
+}
+
+type CreatePrincipalBody struct {
+	Principal                  Principal `json:"principal"`
+	CredentialRotationRequired bool      `json:"credentialRotationRequired"`
 }

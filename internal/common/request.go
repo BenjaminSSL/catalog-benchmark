@@ -87,6 +87,8 @@ func (b *RequestBuilder) Build(ctx context.Context, host string, resource string
 	if token != "" {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
+
+	//log.Printf("URL: %s", req.URL)
 	return req
 
 }
