@@ -1,6 +1,7 @@
 package execution
 
 import (
+	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/common"
 	"context"
 	"github.com/google/uuid"
@@ -34,61 +35,69 @@ func NewBenchmarkEngine(experimentID string, catalog string, threads int, durati
 		client:       getHttpClient(),
 	}
 }
+
 func (e *BenchmarkEngine) RunCreateCatalog(ctx context.Context) error {
 	return e.runSingleBenchmark(ctx, e.createCatalogWorker)
 }
 
-// RunCreatePrincipal runs the create principal benchmark
 func (e *BenchmarkEngine) RunCreatePrincipal(ctx context.Context) error {
 	return e.runSingleBenchmark(ctx, e.createPrincipalWorker)
 }
 
-// RunCreateSchema runs the create schema benchmark
 func (e *BenchmarkEngine) RunCreateSchema(ctx context.Context) error {
-	catalogName := uuid.NewString()
-	log.Println("Creating catalog", catalogName)
+	catalogName, _ := createCatalog(e.catalog, e.client)
 
-	_, err := createCatalogRequest(e.catalog, e.client, catalogName)
-	if err != nil {
-		return err
-	}
-
-	return e.runSingleBenchmark(ctx, e.createSchemaOnCatalogWorker, catalogName)
+	return e.runSingleBenchmark(ctx, e.createSchemaWorker, catalogName)
 }
 
-// RunCreateUpdateCatalog runs the create and update catalog benchmark
-func (e *BenchmarkEngine) RunCreateUpdateCatalog(ctx context.Context) error {
-	catalogName := uuid.NewString()
-	_, err := createCatalogRequest(e.catalog, e.client, catalogName)
-	if err != nil {
-		return err
+func (e *BenchmarkEngine) RunCreateTable(ctx context.Context) error {
+	catalogName, namespaceName, _ := createCatalogAndSchema(e.catalog, e.client)
+	if e.catalog == "polaris" {
+		err := polaris.GrantCatalogPermissions(ctx, catalogName)
+		if err != nil {
+			return err
+		}
 	}
 
-	return e.runSingleBenchmark(ctx, e.updateCatalogWorker, catalogName)
+	return e.runSingleBenchmark(ctx, e.createTableWorker, catalogName, namespaceName)
+}
+func (e *BenchmarkEngine) RunCreateView(ctx context.Context) error {
+	catalogName, namespaceName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+	return e.runSingleBenchmark(ctx, e.createViewWorker, catalogName, namespaceName)
 }
 
-// RunCreateUpdatePrincipal runs the create and update principal benchmark
-func (e *BenchmarkEngine) RunCreateUpdatePrincipal(ctx context.Context) error {
-	catalogName := uuid.NewString()
-	_, err := createCatalogRequest(e.catalog, e.client, catalogName)
+func (e *BenchmarkEngine) RunCreateFunction(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	return e.runSingleBenchmark(ctx, e.updatePrincipalWorker, catalogName)
+	return e.runSingleBenchmark(ctx, e.createFunctionWorker, catalogName, schemaName)
+}
+func (e *BenchmarkEngine) RunCreateModel(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runSingleBenchmark(ctx, e.createModelWorker, catalogName, schemaName)
+}
+func (e *BenchmarkEngine) RunCreateVolume(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runSingleBenchmark(ctx, e.createVolumeWorker, catalogName, schemaName)
 }
 
-// RunCreateDeleteCatalog runs the create and delete catalog benchmark
 func (e *BenchmarkEngine) RunCreateDeleteCatalog(ctx context.Context) error {
 	return e.runSingleBenchmark(ctx, e.createDeleteCatalogWorker)
 }
 
-// RunCreateDeletePrincipal runs the create and delete principal benchmark
-func (e *BenchmarkEngine) RunCreateDeletePrincipal(ctx context.Context) error {
-	return e.runSingleBenchmark(ctx, e.createDeletePrincipalWorker)
-}
-
-// RunCreateDeleteSchema runs the create and delete schema benchmark
 func (e *BenchmarkEngine) RunCreateDeleteSchema(ctx context.Context) error {
 	catalogName := uuid.NewString()
 	log.Println("Creating catalog", catalogName)
@@ -100,23 +109,118 @@ func (e *BenchmarkEngine) RunCreateDeleteSchema(ctx context.Context) error {
 	return e.runSingleBenchmark(ctx, e.createDeleteSchemaWorker, catalogName)
 }
 
-// RunCreateDeleteListCatalog runs the create, delete, and list catalog benchmark
-func (e *BenchmarkEngine) RunCreateDeleteListCatalog(ctx context.Context) error {
-	return e.runMixedBenchmark(ctx, []WorkerConfig{
-		{e.listCatalogsWorker, 0.1, make([]string, 0)},        //  // 10% of threads list catalogs
-		{e.createDeleteCatalogWorker, 0.9, make([]string, 0)}, // 90% create and delete
-	})
+func (e *BenchmarkEngine) RunCreateDeletePrincipal(ctx context.Context) error {
+	return e.runSingleBenchmark(ctx, e.createDeletePrincipalWorker)
 }
 
-// RunCreateDeleteListPrincipal runs the create, delete, and list principal benchmark
-func (e *BenchmarkEngine) RunCreateDeleteListPrincipal(ctx context.Context) error {
-	return e.runMixedBenchmark(ctx, []WorkerConfig{
-		{e.listPrincipalsWorker, 0.1, make([]string, 0)},        // 10% of threads list principals
-		{e.createDeletePrincipalWorker, 0.9, make([]string, 0)}, // 90% create and delete
-	})
+func (e *BenchmarkEngine) RunCreateDeleteTable(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+	if e.catalog == "polaris" {
+		err := polaris.GrantCatalogPermissions(ctx, catalogName)
+		if err != nil {
+			return err
+		}
+	}
+
+	return e.runSingleBenchmark(ctx, e.createDeleteTableWorker, catalogName, schemaName)
 }
 
-// RunCreateDeleteListSchema runs the create, delete, and list schema benchmark
+func (e *BenchmarkEngine) RunCreateDeleteView(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+
+	return e.runSingleBenchmark(ctx, e.createDeleteViewWorker, catalogName, schemaName)
+}
+
+func (e *BenchmarkEngine) RunCreateDeleteFunction(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+
+	return e.runSingleBenchmark(ctx, e.createDeleteFunctionWorker, catalogName, schemaName)
+}
+
+func (e *BenchmarkEngine) RunCreateDeleteModel(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+
+	return e.runSingleBenchmark(ctx, e.createDeleteModelWorker, catalogName, schemaName)
+}
+func (e *BenchmarkEngine) RunCreateDeleteVolume(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+	return e.runSingleBenchmark(ctx, e.createDeleteVolumeWorker, catalogName, schemaName)
+}
+
+func (e *BenchmarkEngine) RunCreateUpdateCatalog(ctx context.Context) error {
+	catalogName := uuid.NewString()
+	_, err := createCatalogRequest(e.catalog, e.client, catalogName)
+	if err != nil {
+		return err
+	}
+
+	return e.runSingleBenchmark(ctx, e.updateCatalogWorker, catalogName)
+}
+
+func (e *BenchmarkEngine) RunCreateUpdatePrincipal(ctx context.Context) error {
+	principalName, _ := createPrincipal(e.catalog, e.client)
+
+	return e.runSingleBenchmark(ctx, e.updatePrincipalWorker, principalName)
+}
+
+func (e *BenchmarkEngine) RunCreateUpdateSchema(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+
+	return e.runSingleBenchmark(ctx, e.updateSchemaWorker, catalogName, schemaName)
+}
+
+func (e *BenchmarkEngine) RunCreateUpdateTable(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+	if e.catalog == "polaris" {
+		err := polaris.GrantCatalogPermissions(ctx, catalogName)
+		if err != nil {
+			return err
+		}
+	}
+
+	tableName, _ := createTable(e.catalog, e.client, catalogName, schemaName)
+
+	return e.runSingleBenchmark(ctx, e.updateTableWorker, catalogName, schemaName, tableName)
+
+}
+
+func (e *BenchmarkEngine) RunCreateUpdateView(ctx context.Context) error {
+	catalogName, namespaceName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+	viewName, err := createView(e.catalog, e.client, catalogName, namespaceName)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runSingleBenchmark(ctx, e.updateViewWorker, catalogName, namespaceName, viewName)
+}
+func (e *BenchmarkEngine) RunCreateUpdateModel(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+	modelName, err := createModel(e.catalog, e.client, catalogName, schemaName)
+	if err != nil {
+		panic(err)
+
+	}
+	return e.runSingleBenchmark(ctx, e.updateModelWorker, catalogName, schemaName, modelName)
+}
+func (e *BenchmarkEngine) RunCreateUpdateVolume(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+	volumeName, err := createVolume(e.catalog, e.client, catalogName, schemaName)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runSingleBenchmark(ctx, e.updateVolumeWorker, catalogName, schemaName, volumeName)
+}
+
 func (e *BenchmarkEngine) RunCreateDeleteListSchema(ctx context.Context) error {
 	catalogName := uuid.NewString()
 	log.Println("Creating catalog", catalogName)
@@ -126,9 +230,174 @@ func (e *BenchmarkEngine) RunCreateDeleteListSchema(ctx context.Context) error {
 	}
 
 	return e.runMixedBenchmark(ctx, []WorkerConfig{
-		{e.listSchemasWorker, 0.1, []string{catalogName}},        // 10% of threads list schemas
-		{e.createDeleteSchemaWorker, 0.9, []string{catalogName}}, // 90% create and delete
+		{e.listSchemasWorker, 0.1, []string{catalogName}},
+		{e.createDeleteSchemaWorker, 0.9, []string{catalogName}},
 	})
+}
+
+func (e *BenchmarkEngine) RunCreateDeleteListCatalog(ctx context.Context) error {
+	return e.runMixedBenchmark(ctx, []WorkerConfig{
+		{e.listCatalogsWorker, 0.1, make([]string, 0)},
+		{e.createDeleteCatalogWorker, 0.9, make([]string, 0)},
+	})
+}
+
+func (e *BenchmarkEngine) RunCreateDeleteListPrincipal(ctx context.Context) error {
+	return e.runMixedBenchmark(ctx, []WorkerConfig{
+		{e.listPrincipalsWorker, 0.1, make([]string, 0)},
+		{e.createDeletePrincipalWorker, 0.9, make([]string, 0)},
+	})
+}
+
+func (e *BenchmarkEngine) RunCreateDeleteListTable(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+	if e.catalog == "polaris" {
+		err := polaris.GrantCatalogPermissions(ctx, catalogName)
+		if err != nil {
+			return err
+		}
+	}
+
+	return e.runMixedBenchmark(ctx, []WorkerConfig{
+		{e.listTablesWorker, 0.1, []string{catalogName, schemaName}},
+		{e.createDeleteTableWorker, 0.9, []string{catalogName, schemaName}},
+	})
+}
+
+func (e *BenchmarkEngine) RunCreateDeleteListView(ctx context.Context) error {
+	catalogName, namespaceName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runMixedBenchmark(ctx, []WorkerConfig{
+		{e.listViewsWorker, 0.1, []string{catalogName, namespaceName}},
+		{e.createDeleteViewWorker, 0.9, []string{catalogName, namespaceName}},
+	})
+}
+func (e *BenchmarkEngine) RunCreateDeleteListFunction(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runMixedBenchmark(ctx, []WorkerConfig{
+		{e.listFunctionsWorker, 0.1, []string{catalogName, schemaName}},
+		{e.createDeleteFunctionWorker, 0.9, []string{catalogName, schemaName}},
+	})
+}
+func (e *BenchmarkEngine) RunCreateDeleteListModel(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runMixedBenchmark(ctx, []WorkerConfig{
+		{e.listModelsWorker, 0.1, []string{catalogName, schemaName}},
+		{e.createDeleteModelWorker, 0.9, []string{catalogName, schemaName}},
+	})
+}
+func (e *BenchmarkEngine) RunCreateDeleteListVolume(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runMixedBenchmark(ctx, []WorkerConfig{
+		{e.listVolumesWorker, 0.1, []string{catalogName, schemaName}},
+		{e.createDeleteVolumeWorker, 0.9, []string{catalogName, schemaName}},
+	})
+}
+
+func (e *BenchmarkEngine) RunUpdateGetCatalog(ctx context.Context) error {
+	catalogName := uuid.NewString()
+	log.Println("Creating catalog", catalogName)
+	_, err := createCatalogRequest(e.catalog, e.client, catalogName)
+	if err != nil {
+		return err
+	}
+
+	return e.runSingleBenchmark(ctx, e.updateGetCatalogWorker, catalogName)
+}
+
+func (e *BenchmarkEngine) RunUpdateGetPrincipal(ctx context.Context) error {
+	principalName := uuid.NewString()
+	log.Println("Creating principal", principalName)
+	_, err := createPrincipalRequest(e.catalog, e.client, principalName)
+	if err != nil {
+		return err
+	}
+
+	return e.runSingleBenchmark(ctx, e.updateGetPrincipalWorker, principalName)
+
+}
+
+func (e *BenchmarkEngine) RunUpdateGetSchema(ctx context.Context) error {
+	catalogName := uuid.NewString()
+	namespaceName := uuid.NewString()
+	log.Println("Creating catalog", catalogName)
+	_, err := createCatalogRequest(e.catalog, e.client, catalogName)
+	if err != nil {
+		return err
+	}
+
+	log.Println("Creating namespace", namespaceName)
+	_, err = createSchemaRequest(e.catalog, e.client, catalogName, namespaceName)
+	if err != nil {
+		return err
+	}
+
+	return e.runSingleBenchmark(ctx, e.updateGetSchemaWorker, catalogName, namespaceName)
+}
+
+func (e *BenchmarkEngine) RunUpdateGetTable(ctx context.Context) error {
+	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
+
+	if e.catalog == "polaris" {
+		err := polaris.GrantCatalogPermissions(ctx, catalogName)
+		if err != nil {
+			return err
+		}
+	}
+
+	tableName, _ := createTable(e.catalog, e.client, catalogName, schemaName)
+
+	return e.runSingleBenchmark(ctx, e.updateGetTableWorker, catalogName, schemaName, tableName)
+}
+
+func (e *BenchmarkEngine) RunUpdateGetView(ctx context.Context) error {
+	catalogName, namespaceName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+	viewName, err := createView(e.catalog, e.client, catalogName, namespaceName)
+
+	return e.runSingleBenchmark(ctx, e.updateGetViewWorker, catalogName, namespaceName, viewName)
+}
+
+func (e *BenchmarkEngine) RunUpdateGetModel(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+	modelName, err := createModel(e.catalog, e.client, catalogName, schemaName)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runSingleBenchmark(ctx, e.updateGetModelWorker, catalogName, schemaName, modelName)
+}
+func (e *BenchmarkEngine) RunUpdateGetVolume(ctx context.Context) error {
+	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
+	if err != nil {
+		panic(err)
+	}
+	volumeName, err := createVolume(e.catalog, e.client, catalogName, schemaName)
+	if err != nil {
+		panic(err)
+	}
+
+	return e.runSingleBenchmark(ctx, e.updateGetVolumeWorker, catalogName, schemaName, volumeName)
 }
 
 func (e *BenchmarkEngine) runSingleBenchmark(ctx context.Context, workerFunc WorkerFunc, params ...string) error {
@@ -169,7 +438,7 @@ func (e *BenchmarkEngine) runMixedBenchmark(ctx context.Context, workers []Worke
 		}
 
 		for t := 0; t < numThreads; t++ {
-			threadID := threadAssigned // Capture the correct value for the goroutine
+			threadID := threadAssigned
 			wg.Add(1)
 			go func(threadID int, wFunc WorkerFunc, params []string) {
 				defer wg.Done()
@@ -183,203 +452,4 @@ func (e *BenchmarkEngine) runMixedBenchmark(ctx context.Context, workers []Worke
 
 	wg.Wait()
 	return nil
-}
-
-func (e *BenchmarkEngine) createCatalogWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, _ ...string) {
-	for step := 1; ; step++ {
-		if ctx.Err() != nil {
-			return
-		}
-
-		name := uuid.NewString()
-		resp, err := createCatalogRequest(e.catalog, client, name)
-
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-	}
-}
-
-func (e *BenchmarkEngine) createPrincipalWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, _ ...string) {
-	for step := 1; ; step++ {
-		if ctx.Err() != nil {
-			return
-		}
-
-		name := uuid.NewString()
-		resp, err := createPrincipalRequest(e.catalog, client, name)
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-	}
-}
-
-func (e *BenchmarkEngine) createSchemaOnCatalogWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
-	catalogName := params[0]
-	for step := 1; ; step++ {
-		if ctx.Err() != nil {
-			return
-		}
-
-		name := uuid.NewString()
-		resp, err := createSchemaRequest(e.catalog, client, name, catalogName)
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-	}
-}
-
-func (e *BenchmarkEngine) updateCatalogWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
-	name := params[0]
-	entityVersion := 1
-	for step := 1; ; step++ {
-		if ctx.Err() != nil {
-			return
-		}
-
-		resp, err := updateCatalogRequest(e.catalog, client, name, entityVersion)
-		if err != nil {
-			handleRequestError(err, logger, step)
-		} else {
-			handleResponse(resp, logger, step)
-			entityVersion++
-		}
-	}
-}
-
-func (e *BenchmarkEngine) updatePrincipalWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
-	name := params[0]
-	entityVersion := 1
-	for step := 1; ; step++ {
-		if ctx.Err() != nil {
-			return
-		}
-
-		resp, err := updatePrincipalRequest(e.catalog, client, name, entityVersion)
-		if err != nil {
-			handleRequestError(err, logger, step)
-		} else {
-			handleResponse(resp, logger, step)
-			entityVersion++
-		}
-	}
-}
-
-func (e *BenchmarkEngine) createDeleteCatalogWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, _ ...string) {
-	for step := 1; ; step += 2 {
-		if ctx.Err() != nil {
-			return
-		}
-		name := uuid.NewString()
-
-		resp, err := createCatalogRequest(e.catalog, client, name)
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-
-		resp, err = deleteCatalogRequest(e.catalog, client, name)
-		if err != nil {
-			handleRequestError(err, logger, step+1)
-			continue
-		}
-		handleResponse(resp, logger, step+1)
-	}
-}
-
-func (e *BenchmarkEngine) createDeletePrincipalWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, _ ...string) {
-	for step := 1; ; step += 2 {
-		if ctx.Err() != nil {
-			return
-		}
-		name := uuid.NewString()
-
-		resp, err := createPrincipalRequest(e.catalog, client, name)
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-
-		resp, err = deletePrincipalRequest(e.catalog, client, name)
-		if err != nil {
-			handleRequestError(err, logger, step+1)
-			continue
-		}
-		handleResponse(resp, logger, step+1)
-	}
-}
-
-func (e *BenchmarkEngine) createDeleteSchemaWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
-	catalogName := params[0]
-	for step := 1; ; step += 2 {
-		if ctx.Err() != nil {
-			return
-		}
-		name := uuid.NewString()
-
-		resp, err := createSchemaRequest(e.catalog, client, name, catalogName)
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-
-		resp, err = deleteSchemaRequest(e.catalog, client, name, catalogName)
-		if err != nil {
-			handleRequestError(err, logger, step+1)
-			continue
-		}
-		handleResponse(resp, logger, step+1)
-	}
-}
-
-func (e *BenchmarkEngine) listCatalogsWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, _ ...string) {
-	for step := 1; ; step++ {
-		if ctx.Err() != nil {
-			return
-		}
-		resp, err := listCatalogsRequest(e.catalog, client)
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-	}
-}
-
-func (e *BenchmarkEngine) listPrincipalsWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, _ ...string) {
-	for step := 1; ; step++ {
-		if ctx.Err() != nil {
-			return
-		}
-		resp, err := listPrincipalsRequest(e.catalog, client)
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-	}
-}
-
-func (e *BenchmarkEngine) listSchemasWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
-	catalogName := params[0]
-	for step := 1; ; step++ {
-		if ctx.Err() != nil {
-			return
-		}
-		resp, err := listSchemasRequest(e.catalog, client, catalogName)
-		if err != nil {
-			handleRequestError(err, logger, step)
-			continue
-		}
-		handleResponse(resp, logger, step)
-	}
 }

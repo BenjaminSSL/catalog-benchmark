@@ -29,6 +29,11 @@ type Principal struct {
 	EntityVersion       int               `json:"entityVersion"`
 }
 
+type TableSchema struct {
+	Type   string        `json:"type"`
+	Fields []interface{} `json:"fields"`
+}
+
 // Request Bodies
 
 type CreateCatalogBody struct {
@@ -53,6 +58,27 @@ type UpdatePrincipalBody struct {
 	Properties           map[string]string `json:"properties"`
 }
 
+type UpdateNamespaceBody struct {
+	Updates map[string]string `json:"updates"`
+}
+type UpdateTableBody struct {
+	Identifier   []map[string]interface{} `json:"identifier,omitempty"`
+	Requirements []map[string]interface{} `json:"requirements,omitempty"`
+	Updates      []map[string]interface{} `json:"updates,omitempty"`
+}
+
+type CreateTableBody struct {
+	Name        string            `json:"name"`
+	Schema      TableSchema       `json:"schema"`
+	StageCreate bool              `json:"stage-create"`
+	Properties  map[string]string `json:"properties"`
+}
+
+type GrantPrivilege struct {
+	Privilege string `json:"privilege"`
+	Type      string `json:"type"`
+}
+
 // Responses
 
 type ListCatalogsResponse struct {
@@ -67,4 +93,43 @@ type ListNamespacesResponse struct {
 type CreatePrincipalBody struct {
 	Principal                  Principal `json:"principal"`
 	CredentialRotationRequired bool      `json:"credentialRotationRequired"`
+}
+type GrantCatalogPermissionBody struct {
+	Grants GrantPrivilege `json:"grant"`
+}
+
+type ListTablesResponse struct {
+	Identifiers   []map[string]interface{} `json:"identifiers"`
+	NextPageToken string                   `json:"next-page-token"`
+}
+
+type UpdateViewBody struct {
+	Identifier   []map[string]interface{} `json:"identifier,omitempty"`
+	Requirements []map[string]interface{} `json:"requirements,omitempty"`
+	Updates      []map[string]interface{} `json:"updates,omitempty"`
+}
+type CreateViewBody struct {
+	Name        string              `json:"name"`
+	Location    string              `json:"location"`
+	Schema      ViewBodySchema      `json:"schema"`
+	ViewVersion ViewBodyViewVersion `json:"view-version"`
+}
+type ViewBodySchema struct {
+	Type   string        `json:"type"`
+	Fields []interface{} `json:"fields"`
+}
+type ViewBodyViewVersion struct {
+	VersionId        int                                 `json:"version-id"`
+	TimestampMs      int                                 `json:"timestamp-ms"`
+	SchemaId         int                                 `json:"schema-id"`
+	Summary          map[string]string                   `json:"summary"`
+	Representations  []ViewBodyViewVersionRepresentation `json:"representations"`
+	DefaultCatalog   string                              `json:"default-catalog"`
+	DefaultNamespace []string                            `json:"default-namespace"`
+}
+
+type ViewBodyViewVersionRepresentation struct {
+	Type    string `json:"type"`
+	Sql     string `json:"sql"`
+	Dialect string `json:"dialect"`
 }

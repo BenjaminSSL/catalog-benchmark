@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -22,6 +21,7 @@ type LogEntry struct {
 	Level        string `json:"level"`
 	ExperimentID string `json:"experiment_id"`
 	ThreadID     int    `json:"thread_id"`
+	Type         string `json:"type"`
 	StepID       int    `json:"step_id"`
 	Timestamp    string `json:"timestamp"`
 	StatusCode   int    `json:"status_code"`
@@ -52,9 +52,10 @@ func NewRoutineBatchLogger(logDir string, experimentID string, theadID int, batc
 
 }
 
-func (l *RoutineBatchLogger) Log(level string, stepID int, statusCode int, body string, data any) {
+func (l *RoutineBatchLogger) Log(level string, requestType string, stepID int, statusCode int, body string, data any) {
 	l.buffer = append(l.buffer, LogEntry{
 		Level:        level,
+		Type:         requestType,
 		ExperimentID: l.ExperimentID,
 		ThreadID:     l.TheadID,
 		StepID:       stepID,
@@ -80,10 +81,10 @@ func (l *RoutineBatchLogger) Flush() {
 		jsonData, err := json.Marshal(entry)
 
 		if err != nil {
-			log.Fatalf("failed to marshal log entry: %v", err)
+			panic(fmt.Sprintf("failed to marshal log entry: %v", err))
 		}
 		if _, err := l.file.Write(append(jsonData, '\n')); err != nil {
-			log.Fatalf("failed to write log entry: %v", err)
+			panic(fmt.Sprintf("failed to write log entry: %v", err))
 		}
 	}
 
@@ -152,28 +153,4 @@ func DeleteLogs(logDir string) error {
 	}
 
 	return nil
-}
-
-func LoadLogs(experimentID string) ([]LogEntry, error) {
-	file, err := os.Open(filepath.Join("./output/logs", fmt.Sprintf("%s.jsonl", experimentID)))
-	if err != nil {
-		return nil, err
-	}
-
-	defer file.Close()
-
-	decoder := json.NewDecoder(file)
-	var logs []LogEntry
-	for {
-		var log LogEntry
-		if err := decoder.Decode(&log); err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-
-		logs = append(logs, log)
-	}
-
-	return logs, nil
 }

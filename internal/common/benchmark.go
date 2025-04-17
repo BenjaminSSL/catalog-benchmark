@@ -24,16 +24,20 @@ type EntityType string
 const (
 	CreateBenchmark BenchmarkType = iota + 1
 	CreateDeleteBenchmark
-	CreateUpdateCatalogBenchmark
+	CreateUpdateBenchmark
 	CreateDeleteListBenchmark
-	UpdatePropertiesCatalogBenchmark
-	UpdateGetCatalogBenchmark
+	UpdateGetBenchmark
 )
 
 const (
 	CatalogEntity   EntityType = "catalog"
-	PrincipalEntity EntityType = "principal"
 	SchemaEntity    EntityType = "schema"
+	TableEntity     EntityType = "table"
+	PrincipalEntity EntityType = "principal"
+	ViewEntity      EntityType = "view"
+	FunctionEntity  EntityType = "function"
+	ModelEntity     EntityType = "model"
+	VolumeEntity    EntityType = "volume"
 )
 
 func GetEnv(key, fallback string) string {

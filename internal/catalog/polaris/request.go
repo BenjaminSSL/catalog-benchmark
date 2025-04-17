@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 var (
@@ -27,7 +28,7 @@ func NewCreateCatalogRequest(ctx context.Context, name string) *http.Request {
 			EntityType: "INTERNAL",
 			Name:       name,
 			Properties: CatalogProperties{
-				DefaultBaseLocation: fmt.Sprintf("/%s/", name),
+				DefaultBaseLocation: fmt.Sprintf("file:///tmp/%s/", name),
 			},
 			StorageConfigInfo: CatalogStorageConfigInfo{
 				StorageType: "FILE",
@@ -51,6 +52,17 @@ func NewListCatalogsRequest(ctx context.Context) *http.Request {
 func NewGetCatalogRequest(ctx context.Context, name string) *http.Request {
 	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, PathManagement, Token)
 }
+func NewGetPrincipalRequest(ctx context.Context, name string) *http.Request {
+	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/principals/%s", name)).Build(ctx, Host, PathManagement, Token)
+}
+
+func NewGetNamespaceRequest(ctx context.Context, catalogName string, namespaceName string) *http.Request {
+	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s", catalogName, namespaceName)).Build(ctx, Host, PathCatalog, Token)
+}
+
+func NewGetTableRequest(ctx context.Context, catalogName string, namespaceName string, name string) *http.Request {
+	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, namespaceName, name)).Build(ctx, Host, PathCatalog, Token)
+}
 
 func NewUpdateCatalogRequest(ctx context.Context, name string, entityVersion int, properties map[string]string) *http.Request {
 	var catalogProperties = CatalogProperties{}
@@ -73,6 +85,8 @@ func NewUpdateCatalogRequest(ctx context.Context, name string, entityVersion int
 	return common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
 }
 
+// Principal
+
 func NewUpdatePrincipalRequest(ctx context.Context, name string, entityVersion int, properties map[string]string) *http.Request {
 
 	body := UpdatePrincipalBody{
@@ -83,7 +97,30 @@ func NewUpdatePrincipalRequest(ctx context.Context, name string, entityVersion i
 	jsonBody, _ := json.Marshal(body)
 
 	return common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("/principals/%s", name)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+}
 
+func NewUpdateNamespaceRequest(ctx context.Context, catalogName string, namespaceName string, properties map[string]string) *http.Request {
+	body := UpdateNamespaceBody{
+		Updates: properties,
+	}
+
+	jsonBody, _ := json.Marshal(body)
+	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/properties", catalogName, namespaceName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+}
+
+func NewUpdateTableRequest(ctx context.Context, catalogName string, namespaceName string, tableName string, properties map[string]string) *http.Request {
+	body := UpdateTableBody{
+		Updates: []map[string]interface{}{
+			{
+				"action":  "set-properties",
+				"updates": properties,
+			},
+		},
+	}
+
+	jsonBody, _ := json.Marshal(body)
+
+	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, namespaceName, tableName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
 }
 
 func NewListPrincipalsRequest(ctx context.Context) *http.Request {
@@ -108,19 +145,28 @@ func NewDeletePrincipalRequest(ctx context.Context, name string) *http.Request {
 
 }
 
-func NewDeleteNamespaceRequest(ctx context.Context, name string, catalogName string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s", catalogName, name)).Build(ctx, Host, PathCatalog, Token)
+func NewDeleteNamespaceRequest(ctx context.Context, catalogName string, namespaceName string) *http.Request {
+	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s", catalogName, namespaceName)).Build(ctx, Host, PathCatalog, Token)
 
 }
 
-func NewListNamespacesRequest(ctx context.Context, catalogName string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces", catalogName)).Build(ctx, Host, PathCatalog, Token)
+func NewListNamespacesRequest(ctx context.Context, catalogName string, pageToken string, maxResults int) *http.Request {
 
+	builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces", catalogName))
+
+	if pageToken != "" {
+		builder.AddQueryParam("pageToken", pageToken)
+	}
+	if maxResults != 0 {
+		builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
+	}
+
+	return builder.Build(ctx, Host, PathCatalog, Token)
 }
 
-func NewCreateNamespaceRequest(ctx context.Context, name string, catalogName string) *http.Request {
+func NewCreateNamespaceRequest(ctx context.Context, catalogName string, namespaceName string) *http.Request {
 	body := CreateNamespaceBody{
-		Namespace:  []string{name},
+		Namespace:  []string{namespaceName},
 		Properties: map[string]string{},
 	}
 
@@ -128,5 +174,131 @@ func NewCreateNamespaceRequest(ctx context.Context, name string, catalogName str
 	if err != nil {
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
+
 	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces", catalogName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+}
+
+func NewCreateTableRequest(ctx context.Context, catalogName string, namespaceName string, tableName string) *http.Request {
+	body := CreateTableBody{
+		Name: tableName,
+		Schema: TableSchema{
+			Type:   "struct",
+			Fields: make([]interface{}, 0),
+		},
+		StageCreate: false,
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		log.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	req := common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables", catalogName, namespaceName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+
+	return req
+
+}
+
+func NewDeleteTableRequest(ctx context.Context, catalogName string, namespaceName string, name string) *http.Request {
+	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, namespaceName, name)).Build(ctx, Host, PathCatalog, Token)
+}
+
+func NewGrantPermissionCatalogRequest(ctx context.Context, catalogName string, privilege string) *http.Request {
+	body := GrantCatalogPermissionBody{
+		Grants: GrantPrivilege{
+			Privilege: privilege,
+			Type:      "catalog",
+		},
+	}
+
+	jsonBody, _ := json.Marshal(body)
+
+	return common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("catalogs/%s/catalog-roles/catalog_admin/grants", catalogName)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+}
+
+func NewListTablesRequest(ctx context.Context, catalogName string, namespaceName string, pageToken string, maxResults int) *http.Request {
+	builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables", catalogName, namespaceName))
+
+	if pageToken != "" {
+		builder.AddQueryParam("pageToken", pageToken)
+	}
+	if maxResults != 0 {
+		builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
+	}
+
+	req := builder.Build(ctx, Host, PathCatalog, Token)
+	return req
+}
+
+func NewCreateViewRequest(ctx context.Context, catalogName string, namespaceName string, viewName string) *http.Request {
+	body := CreateViewBody{
+		Name:     viewName,
+		Location: fmt.Sprintf("file:///tmp/%s/%s/", catalogName, namespaceName),
+		Schema: ViewBodySchema{
+			Type:   "struct",
+			Fields: []interface{}{},
+		},
+		ViewVersion: ViewBodyViewVersion{
+			VersionId:   0,
+			TimestampMs: 0,
+			SchemaId:    0,
+			Summary:     map[string]string{},
+			Representations: []ViewBodyViewVersionRepresentation{{
+				Type:    "sql",
+				Sql:     "SELECT 1 AS test_column",
+				Dialect: "ansi",
+			}},
+			DefaultCatalog: catalogName,
+			DefaultNamespace: []string{
+				namespaceName,
+			},
+		},
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		log.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views", catalogName, namespaceName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+}
+
+func NewDeleteViewRequest(ctx context.Context, catalogName string, namespaceName string, viewName string) *http.Request {
+	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, namespaceName, viewName)).Build(ctx, Host, PathCatalog, Token)
+}
+
+func NewGetViewRequest(ctx context.Context, catalogName string, namespaceName string, viewName string) *http.Request {
+	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, namespaceName, viewName)).Build(ctx, Host, PathCatalog, Token)
+}
+
+func NewListViewsRequest(ctx context.Context, catalogName string, namespaceName string, pageToken string, maxResults int) *http.Request {
+	builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views", catalogName, namespaceName))
+
+	if pageToken != "" {
+		builder.AddQueryParam("pageToken", pageToken)
+	}
+	if maxResults != 0 {
+		builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
+	}
+
+	req := builder.Build(ctx, Host, PathCatalog, Token)
+	return req
+}
+
+func NewUpdateViewRequest(ctx context.Context, catalogName string, namespaceName string, viewName string, properties map[string]string) *http.Request {
+	body := UpdateViewBody{
+		Updates: []map[string]interface{}{
+			{
+				"action":  "set-properties",
+				"updates": properties,
+			},
+		},
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		log.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, namespaceName, viewName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
 }

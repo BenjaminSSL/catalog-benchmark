@@ -20,6 +20,6 @@ output/*
 
 .DS_Store
 
-benchmark.db
-benchmark.db.*
+benchmark.duckdb
+benchmark.duckdb.*
 database/

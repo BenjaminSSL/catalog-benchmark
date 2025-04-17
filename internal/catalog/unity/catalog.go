@@ -28,7 +28,10 @@ func ListCatalogs(ctx context.Context, maxResults int) ([]Catalog, error) {
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
 		if err != nil {
 			return nil, err
 		}

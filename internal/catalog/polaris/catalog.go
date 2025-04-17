@@ -27,3 +27,24 @@ func ListCatalogs(ctx context.Context) ([]Catalog, error) {
 
 	return result.Catalogs, nil
 }
+
+func GrantCatalogPermissions(ctx context.Context, catalogName string) error {
+
+	requests := []*http.Request{
+		NewGrantPermissionCatalogRequest(ctx, catalogName, "TABLE_WRITE_DATA"),
+		NewGrantPermissionCatalogRequest(ctx, catalogName, "TABLE_READ_DATA"),
+	}
+
+	for _, request := range requests {
+		resp, err := http.DefaultClient.Do(request)
+		if err != nil {
+			return err
+		}
+
+		resp.Body.Close()
+
+	}
+
+	return nil
+
+}

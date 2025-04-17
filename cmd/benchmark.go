@@ -3,7 +3,6 @@ package cmd
 import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/common"
-	"benchmark/internal/evaluate"
 	"benchmark/internal/execution"
 	"context"
 	"encoding/json"
@@ -110,8 +109,22 @@ func runBenchmark(experiment common.Experiment) error {
 			switch experiment.Entity {
 			case common.CatalogEntity:
 				done <- engine.RunCreateCatalog(ctx)
+			case common.PrincipalEntity:
+				done <- engine.RunCreatePrincipal(ctx)
 			case common.SchemaEntity:
 				done <- engine.RunCreateSchema(ctx)
+			case common.TableEntity:
+				done <- engine.RunCreateTable(ctx)
+			case common.ViewEntity:
+				done <- engine.RunCreateView(ctx)
+			case common.FunctionEntity:
+				done <- engine.RunCreateFunction(ctx)
+			case common.ModelEntity:
+				done <- engine.RunCreateModel(ctx)
+			case common.VolumeEntity:
+				done <- engine.RunCreateVolume(ctx)
+			default:
+				log.Fatalf("unknown entity type: %s", experiment.Entity)
 			}
 		case common.CreateDeleteBenchmark:
 			switch experiment.Entity {
@@ -121,15 +134,38 @@ func runBenchmark(experiment common.Experiment) error {
 				done <- engine.RunCreateDeletePrincipal(ctx)
 			case common.SchemaEntity:
 				done <- engine.RunCreateDeleteSchema(ctx)
+			case common.TableEntity:
+				done <- engine.RunCreateDeleteTable(ctx)
+			case common.ViewEntity:
+				done <- engine.RunCreateDeleteView(ctx)
+			case common.FunctionEntity:
+				done <- engine.RunCreateDeleteFunction(ctx)
+			case common.ModelEntity:
+				done <- engine.RunCreateDeleteModel(ctx)
+			case common.VolumeEntity:
+				done <- engine.RunCreateDeleteVolume(ctx)
+			default:
+				log.Fatalf("unknown entity type: %s", experiment.Entity)
 			}
-		case common.CreateUpdateCatalogBenchmark:
+		case common.CreateUpdateBenchmark:
 			switch experiment.Entity {
 			case common.CatalogEntity:
 				done <- engine.RunCreateUpdateCatalog(ctx)
 			case common.PrincipalEntity:
 				done <- engine.RunCreateUpdatePrincipal(ctx)
 			case common.SchemaEntity:
-				done <- engine.RunCreateDeleteSchema(ctx)
+				done <- engine.RunCreateUpdateSchema(ctx)
+			case common.TableEntity:
+				done <- engine.RunCreateUpdateTable(ctx)
+			case common.ViewEntity:
+				done <- engine.RunCreateUpdateView(ctx)
+			case common.ModelEntity:
+				done <- engine.RunCreateUpdateModel(ctx)
+			case common.VolumeEntity:
+				done <- engine.RunCreateUpdateVolume(ctx)
+			default:
+				log.Fatalf("unknown entity type: %s", experiment.Entity)
+
 			}
 		case common.CreateDeleteListBenchmark:
 			switch experiment.Entity {
@@ -139,6 +175,38 @@ func runBenchmark(experiment common.Experiment) error {
 				done <- engine.RunCreateDeleteListPrincipal(ctx)
 			case common.SchemaEntity:
 				done <- engine.RunCreateDeleteListSchema(ctx)
+			case common.TableEntity:
+				done <- engine.RunCreateDeleteListTable(ctx)
+			case common.ViewEntity:
+				done <- engine.RunCreateDeleteListView(ctx)
+			case common.FunctionEntity:
+				done <- engine.RunCreateDeleteListFunction(ctx)
+			case common.ModelEntity:
+				done <- engine.RunCreateDeleteListModel(ctx)
+			case common.VolumeEntity:
+				done <- engine.RunCreateDeleteListVolume(ctx)
+			default:
+				log.Fatalf("unknown entity type: %s", experiment.Entity)
+
+			}
+		case common.UpdateGetBenchmark:
+			switch experiment.Entity {
+			case common.CatalogEntity:
+				done <- engine.RunUpdateGetCatalog(ctx)
+			case common.PrincipalEntity:
+				done <- engine.RunUpdateGetPrincipal(ctx)
+			case common.SchemaEntity:
+				done <- engine.RunUpdateGetSchema(ctx)
+			case common.TableEntity:
+				done <- engine.RunUpdateGetTable(ctx)
+			case common.ViewEntity:
+				done <- engine.RunUpdateGetView(ctx)
+			case common.ModelEntity:
+				done <- engine.RunUpdateGetModel(ctx)
+			case common.VolumeEntity:
+				done <- engine.RunUpdateGetVolume(ctx)
+			default:
+				log.Fatalf("unknown entity type: %s", experiment.Entity)
 			}
 
 		default:
@@ -185,21 +253,6 @@ func runBenchmark(experiment common.Experiment) error {
 			}
 
 			log.Printf("Experiment saved\n")
-
-			log.Printf("Evaluating benchmark...\n")
-			evaluation, err := evaluate.Benchmark(ctx, experiment)
-			if err != nil {
-				log.Printf("Error evaluating benchmark: %s\n", err)
-				return
-			}
-			log.Printf("Benchmark evaluation finished\n")
-
-			log.Printf("Saving evaluation...\n")
-			if err := saveEvaluation(evaluation, "./output/evaluations"); err != nil {
-				log.Printf("Error saving evaluation: %s\n", err)
-			}
-			log.Printf("Evaluation saved\n")
-
 		}()
 
 		// Wait for benchmark and log merge to finish
@@ -232,29 +285,4 @@ func saveExperiment(experiment common.Experiment, dir string) error {
 	}
 
 	return nil
-}
-func saveEvaluation(evaluation *evaluate.Evaluation, dir string) error {
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", dir, err)
-	}
-
-	filePath := filepath.Join(dir, evaluation.ExperimentID.String()+".json")
-
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open file %s: %w", filePath, err)
-	}
-	defer file.Close()
-
-	jsonContent, err := json.MarshalIndent(evaluation, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal experiment: %w", err)
-	}
-
-	if _, err := file.Write(jsonContent); err != nil {
-		return fmt.Errorf("failed to write to file %s: %w", filePath, err)
-	}
-
-	return nil
-
 }
