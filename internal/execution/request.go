@@ -23,28 +23,24 @@ func handleResponse(resp *http.Response, logger *common.RoutineBatchLogger, step
 	resp.Body.Close()
 
 	if err != nil {
-		logger.Log("ERROR", requestType, step, statusCode, "", errors.New("failed to read response body").Error())
+		logger.Log("ERROR", requestType, step, statusCode, err.Error())
 		return
 	}
 
-	//if len(body) > 1000 {
-	//	body = body[:1000]
-	//}
-
 	if statusCode >= 200 && statusCode <= 299 {
-		logger.Log("INFO", requestType, step, statusCode, string(body), "")
+		logger.Log("INFO", requestType, step, statusCode, string(body))
 	} else {
-		logger.Log("ERROR", requestType, step, statusCode, string(body), errors.New(fmt.Sprintf("Step %d has failed", step)))
+		logger.Log("ERROR", requestType, step, statusCode, string(body))
 	}
 }
 func handleRequestError(err error, logger *common.RoutineBatchLogger, step int, requestType string) {
 	switch {
 	case errors.Is(err, context.Canceled):
-		logger.Log("ERROR", requestType, step, 0, err.Error(), errors.New("request timed out").Error())
+		logger.Log("ERROR", requestType, step, 0, err.Error())
 	case err.(*url.Error).Timeout():
-		logger.Log("ERROR", requestType, step, 0, err.Error(), errors.New("connection timeout").Error())
+		logger.Log("ERROR", requestType, step, 0, err.Error())
 	default:
-		logger.Log("ERROR", requestType, step, 0, err.Error(), errors.New("request failed").Error())
+		logger.Log("ERROR", requestType, step, 0, err.Error())
 	}
 }
 
