@@ -11,7 +11,6 @@ type Experiment struct {
 	Catalog        string        `json:"catalog"`
 	BenchmarkID    BenchmarkType `json:"benchmark"`
 	Threads        int           `json:"threads"`
-	Repeat         int           `json:"repeat"`
 	StartTimestamp time.Time     `json:"start_timestamp"`
 	EndTimestamp   time.Time     `json:"end_timestamp"`
 	Duration       time.Duration `json:"duration"`
