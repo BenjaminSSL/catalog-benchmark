@@ -27,9 +27,9 @@ func handleResponse(resp *http.Response, logger *common.RoutineBatchLogger, step
 		return
 	}
 
-	if len(body) > 1000 {
-		body = body[:1000]
-	}
+	//if len(body) > 1000 {
+	//	body = body[:1000]
+	//}
 
 	if statusCode >= 200 && statusCode <= 299 {
 		logger.Log("INFO", requestType, step, statusCode, string(body), "")
@@ -216,12 +216,12 @@ func updateCatalogRequest(catalog string, client *http.Client, name string, enti
 	switch catalog {
 	case "polaris":
 		return client.Do(polaris.NewUpdateCatalogRequest(ctx, name, entityVersion, map[string]string{
-			"fictive_version": string(rune(entityVersion)),
+			"fictive_version": strconv.Itoa(entityVersion),
 		}))
 	case "unity":
 		return client.Do(unity.NewUpdateCatalogRequest(ctx, name,
 			map[string]string{
-				"fictive_version": string(rune(entityVersion)),
+				"fictive_version": strconv.Itoa(entityVersion),
 			},
 		))
 	default:

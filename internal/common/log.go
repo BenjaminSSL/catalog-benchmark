@@ -83,7 +83,7 @@ func (l *RoutineBatchLogger) Flush() {
 		if err != nil {
 			panic(fmt.Sprintf("failed to marshal log entry: %v", err))
 		}
-		if _, err := l.file.Write(append(jsonData, '\n')); err != nil {
+		if _, err = l.file.Write(append(jsonData, '\n')); err != nil {
 			panic(fmt.Sprintf("failed to write log entry: %v", err))
 		}
 	}

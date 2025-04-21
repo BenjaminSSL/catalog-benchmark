@@ -147,22 +147,22 @@ func runBenchmark(experiment common.Experiment) error {
 			default:
 				log.Fatalf("unknown entity type: %s", experiment.Entity)
 			}
-		case common.CreateUpdateBenchmark:
+		case common.UpdateBenchmark:
 			switch experiment.Entity {
 			case common.CatalogEntity:
-				done <- engine.RunCreateUpdateCatalog(ctx)
+				done <- engine.RunUpdateCatalog(ctx)
 			case common.PrincipalEntity:
-				done <- engine.RunCreateUpdatePrincipal(ctx)
+				done <- engine.RunUpdatePrincipal(ctx)
 			case common.SchemaEntity:
-				done <- engine.RunCreateUpdateSchema(ctx)
+				done <- engine.RunUpdateSchema(ctx)
 			case common.TableEntity:
-				done <- engine.RunCreateUpdateTable(ctx)
+				done <- engine.RunUpdateTable(ctx)
 			case common.ViewEntity:
-				done <- engine.RunCreateUpdateView(ctx)
+				done <- engine.RunUpdateView(ctx)
 			case common.ModelEntity:
-				done <- engine.RunCreateUpdateModel(ctx)
+				done <- engine.RunUpdateModel(ctx)
 			case common.VolumeEntity:
-				done <- engine.RunCreateUpdateVolume(ctx)
+				done <- engine.RunUpdateVolume(ctx)
 			default:
 				log.Fatalf("unknown entity type: %s", experiment.Entity)
 
@@ -189,22 +189,22 @@ func runBenchmark(experiment common.Experiment) error {
 				log.Fatalf("unknown entity type: %s", experiment.Entity)
 
 			}
-		case common.UpdateGetBenchmark:
+		case common.CreateUpdateGetBenchmark:
 			switch experiment.Entity {
 			case common.CatalogEntity:
-				done <- engine.RunUpdateGetCatalog(ctx)
+				done <- engine.RunCreateUpdateGetCatalog(ctx)
 			case common.PrincipalEntity:
-				done <- engine.RunUpdateGetPrincipal(ctx)
+				done <- engine.RunCreateUpdateGetPrincipal(ctx)
 			case common.SchemaEntity:
-				done <- engine.RunUpdateGetSchema(ctx)
+				done <- engine.RunCreateUpdateGetSchema(ctx)
 			case common.TableEntity:
-				done <- engine.RunUpdateGetTable(ctx)
+				done <- engine.RunCreateUpdateGetTable(ctx)
 			case common.ViewEntity:
-				done <- engine.RunUpdateGetView(ctx)
+				done <- engine.RunCreateUpdateGetView(ctx)
 			case common.ModelEntity:
-				done <- engine.RunUpdateGetModel(ctx)
+				done <- engine.RunCreateUpdateGetModel(ctx)
 			case common.VolumeEntity:
-				done <- engine.RunUpdateGetVolume(ctx)
+				done <- engine.RunCreateUpdateGetVolume(ctx)
 			default:
 				log.Fatalf("unknown entity type: %s", experiment.Entity)
 			}

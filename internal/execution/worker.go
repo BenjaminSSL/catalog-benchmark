@@ -508,8 +508,8 @@ func (e *BenchmarkEngine) updateVolumeWorker(ctx context.Context, client *http.C
 	}
 }
 
-func (e *BenchmarkEngine) updateGetCatalogWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
-	name := params[0]
+func (e *BenchmarkEngine) createUpdateGetCatalogWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
+	name, _ := createCatalog(e.catalog, client)
 	entityVersion := 1
 	for step := 1; ; step++ {
 		if ctx.Err() != nil {
@@ -535,8 +535,8 @@ func (e *BenchmarkEngine) updateGetCatalogWorker(ctx context.Context, client *ht
 	}
 }
 
-func (e *BenchmarkEngine) updateGetPrincipalWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
-	name := params[0]
+func (e *BenchmarkEngine) createUpdateGetPrincipalWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
+	name, _ := createPrincipal(e.catalog, client)
 	entityVersion := 1
 	for step := 1; ; step++ {
 		if ctx.Err() != nil {
@@ -562,9 +562,9 @@ func (e *BenchmarkEngine) updateGetPrincipalWorker(ctx context.Context, client *
 	}
 }
 
-func (e *BenchmarkEngine) updateGetSchemaWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
-	catalogName := params[0]
-	namespaceName := params[1]
+func (e *BenchmarkEngine) createUpdateGetSchemaWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
+	catalogName, _ := createCatalog(e.catalog, client)
+	namespaceName, _ := createSchema(e.catalog, client, catalogName)
 	entityVersion := 1
 	for step := 1; ; step++ {
 		if ctx.Err() != nil {
@@ -590,7 +590,7 @@ func (e *BenchmarkEngine) updateGetSchemaWorker(ctx context.Context, client *htt
 	}
 }
 
-func (e *BenchmarkEngine) updateGetTableWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
+func (e *BenchmarkEngine) createUpdateGetTableWorker(ctx context.Context, client *http.Client, logger *common.RoutineBatchLogger, params ...string) {
 	catalogName := params[0]
 	schemaName := params[1]
 	tableName := params[2]

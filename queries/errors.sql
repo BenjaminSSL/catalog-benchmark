@@ -10,9 +10,30 @@ SELECT *
 FROM read_json_auto('output/experiments/*.json');
 
 
+SELECT * FROM experiments;
+
+-- The timestamp is not automatically parsed as a timestamp, so TRY_CAST will correctly parse it
+SELECT
+    experiment_id,
+    COUNT(*) AS total_requests,
+    (EXTRACT(EPOCH FROM (MAX(TRY_CAST(timestamp AS TIMESTAMP)) - MIN(TRY_CAST(timestamp AS TIMESTAMP)))) + 1) AS time_span_seconds,
+    COUNT(*) / NULLIF((EXTRACT(EPOCH FROM (MAX(TRY_CAST(timestamp AS TIMESTAMP)) - MIN(TRY_CAST(timestamp AS TIMESTAMP)))) + 1), 0) AS avg_requests_per_second
+FROM
+    logs
+WHERE
+    timestamp IS NOT NULL
+GROUP BY
+    experiment_id
+HAVING
+    COUNT(*) > 0
+ORDER BY
+    experiment_id;
+
+
 SELECT logs.experiment_id, COUNT(level) AS error_count FROM logs GROUP BY logs.experiment_id ORDER BY error_count DESC;
 
 SELECT * FROM LOGS JOIN experiments ON logs.experiment_id = experiments.id WHERE logs.type LIKE '%listCatalog%';
+SELECT * FROM LOGS JOIN experiments ON logs.experiment_id = experiments.id WHERE experiments.catalog = 'unity' AND experiments.id = '942f5a30-d212-4442-bd16-5139f108c25c' ORDER BY logs.thread_id ASC;
 
 SELECT DISTINCT logs.body, logs.type, experiments.benchmark FROM logs JOIN experiments ON logs.experiment_id = experiments.id WHERE logs.level = 'ERROR' AND logs.body LIKE '%sibling%'
 

@@ -147,7 +147,7 @@ func (e *BenchmarkEngine) RunCreateDeleteVolume(ctx context.Context) error {
 	return e.runSingleBenchmark(ctx, e.createDeleteVolumeWorker, catalogName, schemaName)
 }
 
-func (e *BenchmarkEngine) RunCreateUpdateCatalog(ctx context.Context) error {
+func (e *BenchmarkEngine) RunUpdateCatalog(ctx context.Context) error {
 	catalogName := uuid.NewString()
 	_, err := createCatalogRequest(e.catalog, e.client, catalogName)
 	if err != nil {
@@ -157,19 +157,19 @@ func (e *BenchmarkEngine) RunCreateUpdateCatalog(ctx context.Context) error {
 	return e.runSingleBenchmark(ctx, e.updateCatalogWorker, catalogName)
 }
 
-func (e *BenchmarkEngine) RunCreateUpdatePrincipal(ctx context.Context) error {
+func (e *BenchmarkEngine) RunUpdatePrincipal(ctx context.Context) error {
 	principalName, _ := createPrincipal(e.catalog, e.client)
 
 	return e.runSingleBenchmark(ctx, e.updatePrincipalWorker, principalName)
 }
 
-func (e *BenchmarkEngine) RunCreateUpdateSchema(ctx context.Context) error {
+func (e *BenchmarkEngine) RunUpdateSchema(ctx context.Context) error {
 	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
 
 	return e.runSingleBenchmark(ctx, e.updateSchemaWorker, catalogName, schemaName)
 }
 
-func (e *BenchmarkEngine) RunCreateUpdateTable(ctx context.Context) error {
+func (e *BenchmarkEngine) RunUpdateTable(ctx context.Context) error {
 	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
 	if e.catalog == "polaris" {
 		err := polaris.GrantCatalogPermissions(ctx, catalogName)
@@ -184,7 +184,7 @@ func (e *BenchmarkEngine) RunCreateUpdateTable(ctx context.Context) error {
 
 }
 
-func (e *BenchmarkEngine) RunCreateUpdateView(ctx context.Context) error {
+func (e *BenchmarkEngine) RunUpdateView(ctx context.Context) error {
 	catalogName, namespaceName, err := createCatalogAndSchema(e.catalog, e.client)
 	if err != nil {
 		panic(err)
@@ -196,7 +196,7 @@ func (e *BenchmarkEngine) RunCreateUpdateView(ctx context.Context) error {
 
 	return e.runSingleBenchmark(ctx, e.updateViewWorker, catalogName, namespaceName, viewName)
 }
-func (e *BenchmarkEngine) RunCreateUpdateModel(ctx context.Context) error {
+func (e *BenchmarkEngine) RunUpdateModel(ctx context.Context) error {
 	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
 	if err != nil {
 		panic(err)
@@ -208,7 +208,7 @@ func (e *BenchmarkEngine) RunCreateUpdateModel(ctx context.Context) error {
 	}
 	return e.runSingleBenchmark(ctx, e.updateModelWorker, catalogName, schemaName, modelName)
 }
-func (e *BenchmarkEngine) RunCreateUpdateVolume(ctx context.Context) error {
+func (e *BenchmarkEngine) RunUpdateVolume(ctx context.Context) error {
 	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
 	if err != nil {
 		panic(err)
@@ -309,18 +309,11 @@ func (e *BenchmarkEngine) RunCreateDeleteListVolume(ctx context.Context) error {
 	})
 }
 
-func (e *BenchmarkEngine) RunUpdateGetCatalog(ctx context.Context) error {
-	catalogName := uuid.NewString()
-	log.Println("Creating catalog", catalogName)
-	_, err := createCatalogRequest(e.catalog, e.client, catalogName)
-	if err != nil {
-		return err
-	}
-
-	return e.runSingleBenchmark(ctx, e.updateGetCatalogWorker, catalogName)
+func (e *BenchmarkEngine) RunCreateUpdateGetCatalog(ctx context.Context) error {
+	return e.runSingleBenchmark(ctx, e.createUpdateGetCatalogWorker)
 }
 
-func (e *BenchmarkEngine) RunUpdateGetPrincipal(ctx context.Context) error {
+func (e *BenchmarkEngine) RunCreateUpdateGetPrincipal(ctx context.Context) error {
 	principalName := uuid.NewString()
 	log.Println("Creating principal", principalName)
 	_, err := createPrincipalRequest(e.catalog, e.client, principalName)
@@ -328,11 +321,11 @@ func (e *BenchmarkEngine) RunUpdateGetPrincipal(ctx context.Context) error {
 		return err
 	}
 
-	return e.runSingleBenchmark(ctx, e.updateGetPrincipalWorker, principalName)
+	return e.runSingleBenchmark(ctx, e.createUpdateGetPrincipalWorker, principalName)
 
 }
 
-func (e *BenchmarkEngine) RunUpdateGetSchema(ctx context.Context) error {
+func (e *BenchmarkEngine) RunCreateUpdateGetSchema(ctx context.Context) error {
 	catalogName := uuid.NewString()
 	namespaceName := uuid.NewString()
 	log.Println("Creating catalog", catalogName)
@@ -347,10 +340,10 @@ func (e *BenchmarkEngine) RunUpdateGetSchema(ctx context.Context) error {
 		return err
 	}
 
-	return e.runSingleBenchmark(ctx, e.updateGetSchemaWorker, catalogName, namespaceName)
+	return e.runSingleBenchmark(ctx, e.createUpdateGetSchemaWorker, catalogName, namespaceName)
 }
 
-func (e *BenchmarkEngine) RunUpdateGetTable(ctx context.Context) error {
+func (e *BenchmarkEngine) RunCreateUpdateGetTable(ctx context.Context) error {
 	catalogName, schemaName, _ := createCatalogAndSchema(e.catalog, e.client)
 
 	if e.catalog == "polaris" {
@@ -362,10 +355,10 @@ func (e *BenchmarkEngine) RunUpdateGetTable(ctx context.Context) error {
 
 	tableName, _ := createTable(e.catalog, e.client, catalogName, schemaName)
 
-	return e.runSingleBenchmark(ctx, e.updateGetTableWorker, catalogName, schemaName, tableName)
+	return e.runSingleBenchmark(ctx, e.createUpdateGetTableWorker, catalogName, schemaName, tableName)
 }
 
-func (e *BenchmarkEngine) RunUpdateGetView(ctx context.Context) error {
+func (e *BenchmarkEngine) RunCreateUpdateGetView(ctx context.Context) error {
 	catalogName, namespaceName, err := createCatalogAndSchema(e.catalog, e.client)
 	if err != nil {
 		panic(err)
@@ -375,7 +368,7 @@ func (e *BenchmarkEngine) RunUpdateGetView(ctx context.Context) error {
 	return e.runSingleBenchmark(ctx, e.updateGetViewWorker, catalogName, namespaceName, viewName)
 }
 
-func (e *BenchmarkEngine) RunUpdateGetModel(ctx context.Context) error {
+func (e *BenchmarkEngine) RunCreateUpdateGetModel(ctx context.Context) error {
 	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
 	if err != nil {
 		panic(err)
@@ -387,7 +380,7 @@ func (e *BenchmarkEngine) RunUpdateGetModel(ctx context.Context) error {
 
 	return e.runSingleBenchmark(ctx, e.updateGetModelWorker, catalogName, schemaName, modelName)
 }
-func (e *BenchmarkEngine) RunUpdateGetVolume(ctx context.Context) error {
+func (e *BenchmarkEngine) RunCreateUpdateGetVolume(ctx context.Context) error {
 	catalogName, schemaName, err := createCatalogAndSchema(e.catalog, e.client)
 	if err != nil {
 		panic(err)

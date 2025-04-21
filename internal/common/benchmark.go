@@ -24,9 +24,9 @@ type EntityType string
 const (
 	CreateBenchmark BenchmarkType = iota + 1
 	CreateDeleteBenchmark
-	CreateUpdateBenchmark
+	UpdateBenchmark
 	CreateDeleteListBenchmark
-	UpdateGetBenchmark
+	CreateUpdateGetBenchmark
 )
 
 const (

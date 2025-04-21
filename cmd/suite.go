@@ -35,10 +35,14 @@ func newSuiteCommand() *Command {
 
 func runSuite(catalog string) error {
 	entities := []common.EntityType{common.CatalogEntity, common.SchemaEntity, common.TableEntity}
-	if catalog == "polaris" {
-		entities = append(entities, common.ViewEntity, common.PrincipalEntity)
-	} else if catalog == "unity" {
-		entities = append(entities, common.FunctionEntity, common.ModelEntity, common.VolumeEntity)
+
+	catalogEntities := map[string][]common.EntityType{
+		"polaris": {common.ViewEntity, common.PrincipalEntity},
+		"unity":   {common.FunctionEntity, common.ModelEntity, common.VolumeEntity},
+	}
+
+	if extraEntities, exists := catalogEntities[catalog]; exists {
+		entities = append(entities, extraEntities...)
 	}
 
 	threads := []int{2, 5, 25, 50, 100}
@@ -46,15 +50,15 @@ func runSuite(catalog string) error {
 	benchmarks := []common.BenchmarkType{
 		common.CreateBenchmark,
 		common.CreateDeleteBenchmark,
-		common.CreateUpdateBenchmark,
+		common.UpdateBenchmark,
 		common.CreateDeleteListBenchmark,
-		common.UpdateGetBenchmark,
+		common.CreateUpdateGetBenchmark,
 	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
-
 	done := make(chan struct{})
+
 	go func() {
 		for _, entity := range entities {
 			for _, thread := range threads {
@@ -76,7 +80,6 @@ func runSuite(catalog string) error {
 				}
 			}
 		}
-
 		close(done)
 	}()
 
