@@ -27,34 +27,27 @@ func newBenchmarkCommand() *Command {
 
 	// Anonymous flag config struct
 	config := struct {
-		ExperimentID string
+		ExperimentID uuid.UUID
 		BenchmarkID  int
 		Catalog      string
 		Threads      int
 		Entity       string
-		Duration     int
+		Duration     string
 	}{
 		// Default values
-		ExperimentID: uuid.NewString(),
+		ExperimentID: uuid.New(),
 		BenchmarkID:  1,
 		Catalog:      "polaris",
 		Threads:      1,
 		Entity:       "catalog",
-		Duration:     20,
+		Duration:     "10s",
 	}
 
-	flags.StringVar(&config.ExperimentID, "experiment-id", config.ExperimentID, "Experiment ID")
 	flags.IntVar(&config.BenchmarkID, "benchmark-id", config.BenchmarkID, "Benchmark ID")
 	flags.StringVar(&config.Catalog, "catalog", config.Catalog, "Catalog")
 	flags.IntVar(&config.Threads, "threads", config.Threads, "Threads")
 	flags.StringVar(&config.Entity, "entity", config.Entity, "Entity")
-	flags.IntVar(&config.Duration, "duration", config.Duration, "Duration (seconds)")
-
-	experimentID, err := uuid.Parse(config.ExperimentID)
-	if err != nil {
-		log.Fatal(err)
-	}
-	config.ExperimentID = experimentID.String()
+	flags.StringVar(&config.Duration, "duration", config.Duration, "Duration")
 
 	return &Command{
 		Name:        "benchmark",
@@ -63,12 +56,18 @@ func newBenchmarkCommand() *Command {
 		Handler: func() error {
 			benchmarkType := common.BenchmarkType(config.BenchmarkID)
 			entityType := common.EntityType(config.Entity)
+
+			duration, err := time.ParseDuration(config.Duration)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			experiment := common.Experiment{
-				ID:          experimentID,
+				ID:          config.ExperimentID,
 				BenchmarkID: benchmarkType,
 				Catalog:     config.Catalog,
 				Threads:     config.Threads,
-				Duration:    time.Duration(config.Duration) * time.Second,
+				Duration:    duration,
 				Entity:      entityType,
 			}
 			return runBenchmark(experiment)
