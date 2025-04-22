@@ -1,6 +1,6 @@
 package unity
 
-type Catalog struct {
+type CatalogModel struct {
 	Name       string            `json:"name"`
 	Comment    string            `json:"comment"`
 	Properties map[string]string `json:"properties"`
@@ -44,8 +44,8 @@ type Table struct {
 	TableId   string      `json:"table_id"`
 }
 type ListCatalogsResponse struct {
-	Catalogs      []Catalog `json:"catalogs"`
-	NextPageToken string    `json:"next_page_token"`
+	Catalogs      []CatalogModel `json:"catalogs"`
+	NextPageToken string         `json:"next_page_token"`
 }
 type ListSchemasResponse struct {
 	Schemas       []Schema `json:"schemas"`

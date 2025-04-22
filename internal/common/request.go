@@ -5,12 +5,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 )
-
-type RequestParams interface {
-	Validate() error
-}
 
 type RequestBuilder struct {
 	host     string
@@ -18,7 +15,7 @@ type RequestBuilder struct {
 	method   string
 	endpoint string
 	body     []byte
-	query    map[string]string
+	query    url.Values
 	headers  http.Header
 }
 
@@ -27,13 +24,12 @@ func NewRequestBuilder() *RequestBuilder {
 	builder := &RequestBuilder{
 		method:  "GET",
 		headers: make(http.Header),
-		query:   make(map[string]string),
+		query:   make(url.Values),
 	}
 
 	return builder
 }
 
-// SetMethod sets the requests method. The default method is GET.
 func (b *RequestBuilder) SetMethod(method string) *RequestBuilder {
 	b.method = method
 	return b
@@ -49,7 +45,7 @@ func (b *RequestBuilder) AddHeader(key string, value string) *RequestBuilder {
 }
 
 func (b *RequestBuilder) AddQueryParam(key string, value string) *RequestBuilder {
-	b.query[key] = value
+	b.query.Add(key, value)
 	return b
 }
 
@@ -58,29 +54,20 @@ func (b *RequestBuilder) SetJSONBody(body []byte) *RequestBuilder {
 	return b.AddHeader("Content-Type", "application/json")
 }
 
-func (b *RequestBuilder) buildQuery() string {
-	query := ""
-	for key, value := range b.query {
-		if query == "" {
-			query = fmt.Sprintf("%s=%s", key, value)
-		} else {
-			query = fmt.Sprintf("%s&%s=%s", query, key, value)
-		}
-	}
-	return query
-}
-
-func (b *RequestBuilder) Build(ctx context.Context, host string, resource string, token string) *http.Request {
+func (b *RequestBuilder) Build(ctx context.Context, host string, resource string, token string) (*http.Request, error) {
 	baseURL := fmt.Sprintf("http://%s%s", host, path.Clean(resource))
 	endpoint := path.Join("/", b.endpoint)
 
-	url := fmt.Sprintf("%s%s", baseURL, endpoint)
+	fullURL := fmt.Sprintf("%s%s", baseURL, endpoint)
 
 	if len(b.query) > 0 {
-		url = url + "?" + b.buildQuery()
+		fullURL = fmt.Sprintf("%s?%s", fullURL, b.query.Encode())
 	}
 
-	req, _ := http.NewRequestWithContext(ctx, b.method, url, bytes.NewBuffer(b.body))
+	req, err := http.NewRequestWithContext(ctx, b.method, fullURL, bytes.NewBuffer(b.body))
+	if err != nil {
+		return nil, err
+	}
 
 	req.Header = b.headers
 
@@ -88,7 +75,5 @@ func (b *RequestBuilder) Build(ctx context.Context, host string, resource string
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
 
-	//log.Printf("URL: %s", req.URL)
-	return req
-
+	return req, nil
 }

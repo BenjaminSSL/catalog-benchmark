@@ -45,8 +45,8 @@ func runSuite(catalog string) error {
 		entities = append(entities, extraEntities...)
 	}
 
-	threads := []int{2, 5, 25, 50, 100}
-	duration := []int{1, 2, 5}
+	threads := []int{2}
+	durations := []time.Duration{time.Millisecond * 2}
 	benchmarks := []common.BenchmarkType{
 		common.CreateBenchmark,
 		common.CreateDeleteBenchmark,
@@ -62,7 +62,7 @@ func runSuite(catalog string) error {
 	go func() {
 		for _, entity := range entities {
 			for _, thread := range threads {
-				for _, duration := range duration {
+				for _, duration := range durations {
 					for _, benchmark := range benchmarks {
 						experiment := common.Experiment{
 							ID:          uuid.New(),
@@ -70,9 +70,10 @@ func runSuite(catalog string) error {
 							BenchmarkID: benchmark,
 							Threads:     thread,
 							Entity:      entity,
-							Duration:    time.Duration(duration) * time.Second,
+							Duration:    duration,
 						}
-						log.Printf("Running benchmark: %s, Entity: %s, Threads: %d, Duration: %d seconds\n", benchmark, entity, thread, duration)
+
+						log.Printf("Running benchmark: %d, Entity: %s, Threads: %d, Duration: %d seconds\n", benchmark, entity, thread, duration)
 						if err := runBenchmark(experiment); err != nil {
 							log.Printf("Error benchmark: %s\n", err)
 						}

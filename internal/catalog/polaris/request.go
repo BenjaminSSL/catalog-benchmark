@@ -4,10 +4,13 @@ import (
 	"benchmark/internal/common"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 var (
@@ -22,9 +25,25 @@ func SetToken(token string) {
 	Token = token
 }
 
-func NewCreateCatalogRequest(ctx context.Context, name string) *http.Request {
+var client = &http.Client{
+	Timeout: time.Second * 30,
+	Transport: &http.Transport{
+		MaxIdleConns:        10000,
+		MaxIdleConnsPerHost: 1000,
+		MaxConnsPerHost:     1000,
+		DisableKeepAlives:   false,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
+	},
+}
+
+type Catalog struct{}
+
+func (c *Catalog) CreateCatalog(ctx context.Context, name string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 	body := CreateCatalogBody{
-		Catalog: Catalog{
+		Catalog: CatalogModel{
 			EntityType: "INTERNAL",
 			Name:       name,
 			Properties: CatalogProperties{
@@ -36,37 +55,78 @@ func NewCreateCatalogRequest(ctx context.Context, name string) *http.Request {
 		},
 	}
 
-	jsonBody, _ := json.Marshal(body)
-
-	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+	jsonBody, err := common.MarshalJSON(body)
+	if err != nil {
+		return nil, err
+	}
+	req, err := common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/catalogs").SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewDeleteCatalogRequest(ctx context.Context, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, PathManagement, Token)
+func (c *Catalog) GetCatalog(ctx context.Context, name string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewListCatalogsRequest(ctx context.Context) *http.Request {
-	return common.NewRequestBuilder().SetEndpoint("/catalogs").Build(ctx, Host, PathManagement, Token)
+func (c *Catalog) DeleteCatalog(ctx context.Context, name string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewGetCatalogRequest(ctx context.Context, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, PathManagement, Token)
-}
-func NewGetPrincipalRequest(ctx context.Context, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/principals/%s", name)).Build(ctx, Host, PathManagement, Token)
+func (c *Catalog) ListCatalogs(ctx context.Context, params map[string]interface{}) ([]*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetEndpoint("/catalogs").Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*http.Response, 0)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	responses = append(responses, resp)
+	return responses, nil
 }
 
-func NewGetNamespaceRequest(ctx context.Context, catalogName string, namespaceName string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s", catalogName, namespaceName)).Build(ctx, Host, PathCatalog, Token)
+func (c *Catalog) GetPrincipal(ctx context.Context, name string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/principals/%s", name)).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewGetTableRequest(ctx context.Context, catalogName string, namespaceName string, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, namespaceName, name)).Build(ctx, Host, PathCatalog, Token)
+func (c *Catalog) GetSchema(ctx context.Context, catalogName string, schemaName string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s", catalogName, schemaName)).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewUpdateCatalogRequest(ctx context.Context, name string, entityVersion int, properties map[string]string) *http.Request {
+func (c *Catalog) GetTable(ctx context.Context, catalogName string, schemaName string, name string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, schemaName, name)).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func (c *Catalog) UpdateCatalog(ctx context.Context, name string, params map[string]interface{}) (*http.Response, error) {
+	entityVersion := params["entityVersion"].(int)
+
 	var catalogProperties = CatalogProperties{}
-	if properties != nil {
+	properties, ok := params["properties"].(map[string]string)
+	if ok {
 		catalogProperties = CatalogProperties{
 			AdditionalProps: properties,
 		}
@@ -80,35 +140,68 @@ func NewUpdateCatalogRequest(ctx context.Context, name string, entityVersion int
 		},
 	}
 
-	jsonBody, _ := json.Marshal(body)
+	jsonBody, err := common.MarshalJSON(body)
+	if err != nil {
+		return nil, err
+	}
 
-	return common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+	req, err := common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-// Principal
+func (c *Catalog) UpdatePrincipal(ctx context.Context, name string, params map[string]interface{}) (*http.Response, error) {
+	entityVersion := params["entityVersion"].(int)
 
-func NewUpdatePrincipalRequest(ctx context.Context, name string, entityVersion int, properties map[string]string) *http.Request {
-
+	properties, ok := params["properties"].(map[string]string)
+	if !ok {
+		properties = make(map[string]string)
+	}
 	body := UpdatePrincipalBody{
 		CurrentEntityVersion: entityVersion,
 		Properties:           properties,
 	}
 
-	jsonBody, _ := json.Marshal(body)
+	jsonBody, err := common.MarshalJSON(body)
+	if err != nil {
+		return nil, err
+	}
 
-	return common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("/principals/%s", name)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+	req, err := common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("/principals/%s", name)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewUpdateNamespaceRequest(ctx context.Context, catalogName string, namespaceName string, properties map[string]string) *http.Request {
+func (c *Catalog) UpdateSchema(ctx context.Context, catalogName string, schemaName string, params map[string]interface{}) (*http.Response, error) {
+	properties, ok := params["properties"].(map[string]string)
+	if !ok {
+		properties = make(map[string]string)
+	}
+
 	body := UpdateNamespaceBody{
 		Updates: properties,
 	}
 
-	jsonBody, _ := json.Marshal(body)
-	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/properties", catalogName, namespaceName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	jsonBody, err := common.MarshalJSON(body)
+	if err != nil {
+		return nil, err
+	}
+	req, err := common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/properties", catalogName, schemaName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewUpdateTableRequest(ctx context.Context, catalogName string, namespaceName string, tableName string, properties map[string]string) *http.Request {
+func (c *Catalog) UpdateTable(ctx context.Context, catalogName string, schemaName string, tableName string, params map[string]interface{}) (*http.Response, error) {
+	properties, ok := params["properties"].(map[string]string)
+	if !ok {
+		properties = make(map[string]string)
+	}
 	body := UpdateTableBody{
 		Updates: []map[string]interface{}{
 			{
@@ -118,16 +211,34 @@ func NewUpdateTableRequest(ctx context.Context, catalogName string, namespaceNam
 		},
 	}
 
-	jsonBody, _ := json.Marshal(body)
+	jsonBody, err := common.MarshalJSON(body)
+	if err != nil {
+		return nil, err
+	}
 
-	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, namespaceName, tableName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	req, err := common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, schemaName, tableName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewListPrincipalsRequest(ctx context.Context) *http.Request {
-	return common.NewRequestBuilder().SetEndpoint(fmt.Sprintf("/principals")).Build(ctx, Host, PathManagement, Token)
+func (c *Catalog) ListPrincipals(ctx context.Context, params map[string]interface{}) ([]*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetEndpoint(fmt.Sprintf("/principals")).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*http.Response, 0)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	responses = append(responses, resp)
+	return responses, nil
 }
 
-func NewCreatePrincipalRequest(ctx context.Context, name string) *http.Request {
+func (c *Catalog) CreatePrincipal(ctx context.Context, name string) (*http.Response, error) {
 	body := CreatePrincipalBody{
 		Principal: Principal{
 			Name: name,
@@ -135,38 +246,88 @@ func NewCreatePrincipalRequest(ctx context.Context, name string) *http.Request {
 		CredentialRotationRequired: false,
 	}
 
-	jsonBody, _ := json.Marshal(body)
-
-	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/principals").SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
-}
-
-func NewDeletePrincipalRequest(ctx context.Context, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("/principals/%s", name)).Build(ctx, Host, PathManagement, Token)
-
-}
-
-func NewDeleteNamespaceRequest(ctx context.Context, catalogName string, namespaceName string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s", catalogName, namespaceName)).Build(ctx, Host, PathCatalog, Token)
-
-}
-
-func NewListNamespacesRequest(ctx context.Context, catalogName string, pageToken string, maxResults int) *http.Request {
-
-	builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces", catalogName))
-
-	if pageToken != "" {
-		builder.AddQueryParam("pageToken", pageToken)
-	}
-	if maxResults != 0 {
-		builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
+	jsonBody, err := common.MarshalJSON(body)
+	if err != nil {
+		return nil, err
 	}
 
-	return builder.Build(ctx, Host, PathCatalog, Token)
+	req, err := common.NewRequestBuilder().SetMethod("POST").SetEndpoint("/principals").SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewCreateNamespaceRequest(ctx context.Context, catalogName string, namespaceName string) *http.Request {
+func (c *Catalog) DeletePrincipal(ctx context.Context, name string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("/principals/%s", name)).Build(ctx, Host, PathManagement, Token)
+
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func (c *Catalog) DeleteSchema(ctx context.Context, catalogName string, schemaName string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s", catalogName, schemaName)).Build(ctx, Host, PathCatalog, Token)
+
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func (c *Catalog) ListSchemas(ctx context.Context, catalogName string, params map[string]interface{}) ([]*http.Response, error) {
+	pageToken, ok := params["pageToken"].(string)
+	if !ok {
+		pageToken = ""
+	}
+
+	maxResults, ok := params["maxResults"].(int)
+	if !ok {
+		maxResults = 0
+	}
+
+	responses := make([]*http.Response, 0)
+	for {
+		builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces", catalogName))
+
+		if pageToken != "" {
+			builder.AddQueryParam("pageToken", pageToken)
+		}
+		if maxResults != 0 {
+			builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
+		}
+
+		req, err := builder.Build(ctx, Host, PathCatalog, Token)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		responses = append(responses, resp)
+
+		var body struct {
+			NextPageToken string `json:"nextPageToken"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+			return nil, err
+		}
+		resp.Body.Close()
+		if body.NextPageToken == "" {
+			break
+		}
+		pageToken = body.NextPageToken
+	}
+
+	return responses, nil
+}
+
+func (c *Catalog) CreateSchema(ctx context.Context, catalogName string, schemaName string) (*http.Response, error) {
 	body := CreateNamespaceBody{
-		Namespace:  []string{namespaceName},
+		Namespace:  []string{schemaName},
 		Properties: map[string]string{},
 	}
 
@@ -175,10 +336,14 @@ func NewCreateNamespaceRequest(ctx context.Context, catalogName string, namespac
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
 
-	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces", catalogName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	req, err := common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces", catalogName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewCreateTableRequest(ctx context.Context, catalogName string, namespaceName string, tableName string) *http.Request {
+func (c *Catalog) CreateTable(ctx context.Context, catalogName string, schemaName string, tableName string) (*http.Response, error) {
 	body := CreateTableBody{
 		Name: tableName,
 		Schema: TableSchema{
@@ -193,17 +358,24 @@ func NewCreateTableRequest(ctx context.Context, catalogName string, namespaceNam
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
 
-	req := common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables", catalogName, namespaceName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	req, err := common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables", catalogName, schemaName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
 
-	return req
-
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewDeleteTableRequest(ctx context.Context, catalogName string, namespaceName string, name string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, namespaceName, name)).Build(ctx, Host, PathCatalog, Token)
+func (c *Catalog) DeleteTable(ctx context.Context, catalogName string, schemaName string, tableName string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables/%s", catalogName, schemaName, tableName)).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewGrantPermissionCatalogRequest(ctx context.Context, catalogName string, privilege string) *http.Request {
+func (c *Catalog) GrantPermissionCatalog(ctx context.Context, catalogName string, params map[string]interface{}) (*http.Response, error) {
+	privilege := params["privilege"].(string)
 	body := GrantCatalogPermissionBody{
 		Grants: GrantPrivilege{
 			Privilege: privilege,
@@ -211,29 +383,74 @@ func NewGrantPermissionCatalogRequest(ctx context.Context, catalogName string, p
 		},
 	}
 
-	jsonBody, _ := json.Marshal(body)
-
-	return common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("catalogs/%s/catalog-roles/catalog_admin/grants", catalogName)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
-}
-
-func NewListTablesRequest(ctx context.Context, catalogName string, namespaceName string, pageToken string, maxResults int) *http.Request {
-	builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables", catalogName, namespaceName))
-
-	if pageToken != "" {
-		builder.AddQueryParam("pageToken", pageToken)
-	}
-	if maxResults != 0 {
-		builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
+	jsonBody, err := common.MarshalJSON(body)
+	if err != nil {
+		return nil, err
 	}
 
-	req := builder.Build(ctx, Host, PathCatalog, Token)
-	return req
+	req, err := common.NewRequestBuilder().SetMethod("PUT").SetEndpoint(fmt.Sprintf("catalogs/%s/catalog-roles/catalog_admin/grants", catalogName)).SetJSONBody(jsonBody).Build(ctx, Host, PathManagement, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }
 
-func NewCreateViewRequest(ctx context.Context, catalogName string, namespaceName string, viewName string) *http.Request {
+func (c *Catalog) ListTables(ctx context.Context, catalogName string, schemaName string, params map[string]interface{}) ([]*http.Response, error) {
+	pageToken, ok := params["pageToken"].(string)
+	if !ok {
+		pageToken = ""
+	}
+
+	maxResults, ok := params["maxResults"].(int)
+	if !ok {
+		maxResults = 0
+	}
+
+	responses := make([]*http.Response, 0)
+	for {
+		builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/tables", catalogName, schemaName))
+
+		if pageToken != "" {
+			builder.AddQueryParam("pageToken", pageToken)
+		}
+		if maxResults != 0 {
+			builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
+		}
+
+		req, err := builder.Build(ctx, Host, PathCatalog, Token)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		responses = append(responses, resp)
+		var result struct {
+			NextPageToken string `json:"nextPageToken"`
+		}
+
+		body, _ := io.ReadAll(resp.Body)
+		err = json.Unmarshal(body, &result)
+		if err != nil {
+			return nil, err
+		}
+		resp.Body.Close()
+		if result.NextPageToken == "" {
+			break
+		}
+
+		pageToken = result.NextPageToken
+	}
+
+	return responses, nil
+}
+
+func (c *Catalog) CreateView(ctx context.Context, catalogName string, schemaName string, viewName string) (*http.Response, error) {
 	body := CreateViewBody{
 		Name:     viewName,
-		Location: fmt.Sprintf("file:///tmp/%s/%s/", catalogName, namespaceName),
+		Location: fmt.Sprintf("file:///tmp/%s/%s/", catalogName, schemaName),
 		Schema: ViewBodySchema{
 			Type:   "struct",
 			Fields: []interface{}{},
@@ -250,7 +467,7 @@ func NewCreateViewRequest(ctx context.Context, catalogName string, namespaceName
 			}},
 			DefaultCatalog: catalogName,
 			DefaultNamespace: []string{
-				namespaceName,
+				schemaName,
 			},
 		},
 	}
@@ -260,32 +477,85 @@ func NewCreateViewRequest(ctx context.Context, catalogName string, namespaceName
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
 
-	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views", catalogName, namespaceName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
-}
-
-func NewDeleteViewRequest(ctx context.Context, catalogName string, namespaceName string, viewName string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, namespaceName, viewName)).Build(ctx, Host, PathCatalog, Token)
-}
-
-func NewGetViewRequest(ctx context.Context, catalogName string, namespaceName string, viewName string) *http.Request {
-	return common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, namespaceName, viewName)).Build(ctx, Host, PathCatalog, Token)
-}
-
-func NewListViewsRequest(ctx context.Context, catalogName string, namespaceName string, pageToken string, maxResults int) *http.Request {
-	builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views", catalogName, namespaceName))
-
-	if pageToken != "" {
-		builder.AddQueryParam("pageToken", pageToken)
+	req, err := common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views", catalogName, schemaName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
 	}
-	if maxResults != 0 {
-		builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
-	}
-
-	req := builder.Build(ctx, Host, PathCatalog, Token)
-	return req
+	return client.Do(req)
 }
 
-func NewUpdateViewRequest(ctx context.Context, catalogName string, namespaceName string, viewName string, properties map[string]string) *http.Request {
+func (c *Catalog) DeleteView(ctx context.Context, catalogName string, schemaName string, viewName string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, schemaName, viewName)).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func (c *Catalog) GetView(ctx context.Context, catalogName string, schemaName string, viewName string) (*http.Response, error) {
+	req, err := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, schemaName, viewName)).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func (c *Catalog) ListViews(ctx context.Context, catalogName string, schemaName string, params map[string]interface{}) ([]*http.Response, error) {
+	pageToken, ok := params["pageToken"].(string)
+	if !ok {
+		pageToken = ""
+	}
+
+	maxResults, ok := params["maxResults"].(int)
+	if !ok {
+		maxResults = 0
+	}
+
+	responses := make([]*http.Response, 0)
+	for {
+
+		builder := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views", catalogName, schemaName))
+
+		if pageToken != "" {
+			builder.AddQueryParam("pageToken", pageToken)
+		}
+		if maxResults != 0 {
+			builder.AddQueryParam("pageSize", strconv.Itoa(maxResults))
+		}
+		req, err := builder.Build(ctx, Host, PathCatalog, Token)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		responses = append(responses, resp)
+
+		var body struct {
+			NextPageToken string `json:"nextPageToken"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+			return nil, err
+		}
+
+		resp.Body.Close()
+
+		if body.NextPageToken == "" {
+			break
+		}
+
+		pageToken = body.NextPageToken
+	}
+	return responses, nil
+}
+
+func (c *Catalog) UpdateView(ctx context.Context, catalogName string, schemaName string, viewName string, params map[string]interface{}) (*http.Response, error) {
+	properties, ok := params["properties"].(map[string]string)
+	if !ok {
+		properties = make(map[string]string)
+	}
 	body := UpdateViewBody{
 		Updates: []map[string]interface{}{
 			{
@@ -300,5 +570,52 @@ func NewUpdateViewRequest(ctx context.Context, catalogName string, namespaceName
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
 
-	return common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, namespaceName, viewName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	req, err := common.NewRequestBuilder().SetMethod("POST").SetEndpoint(fmt.Sprintf("%s/namespaces/%s/views/%s", catalogName, schemaName, viewName)).SetJSONBody(jsonBody).Build(ctx, Host, PathCatalog, Token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func (c *Catalog) CreateFunction(ctx context.Context, catalogName string, schemaName string, functionName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) GetFunction(ctx context.Context, catalogName string, schemaName string, functionName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) DeleteFunction(ctx context.Context, catalogName string, schemaName string, functionName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) ListFunctions(ctx context.Context, catalogName string, schemaName string, params map[string]interface{}) ([]*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) CreateModel(ctx context.Context, catalogName string, schemaName string, modelName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) GetModel(ctx context.Context, catalogName string, schemaName string, modelName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) UpdateModel(ctx context.Context, catalogName string, schemaName string, modelName string, params map[string]interface{}) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) DeleteModel(ctx context.Context, catalogName string, schemaName string, modelName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) ListModels(ctx context.Context, catalogName string, schemaName string, params map[string]interface{}) ([]*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) CreateVolume(ctx context.Context, catalogName string, schemaName string, volumeName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) GetVolume(ctx context.Context, catalogName string, schemaName string, volumeName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) UpdateVolume(ctx context.Context, catalogName string, schemaName string, volumeName string, params map[string]interface{}) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) DeleteVolume(ctx context.Context, catalogName string, schemaName string, volumeName string) (*http.Response, error) {
+	return nil, errors.New("not implemented")
+}
+func (c *Catalog) ListVolumes(ctx context.Context, catalogName string, schemaName string, params map[string]interface{}) ([]*http.Response, error) {
+	return nil, errors.New("not implemented")
 }

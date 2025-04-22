@@ -10,7 +10,9 @@ type CatalogProperties struct {
 	DefaultBaseLocation string            `json:"default-base-location"`
 	AdditionalProps     map[string]string `json:"-"`
 }
-type Catalog struct {
+
+// Ends with Model to avoid collision with the Catalog interface
+type CatalogModel struct {
 	EntityType          string                   `json:"type"`
 	Name                string                   `json:"name"`
 	Properties          CatalogProperties        `json:"properties"`
@@ -37,7 +39,7 @@ type TableSchema struct {
 // Request Bodies
 
 type CreateCatalogBody struct {
-	Catalog Catalog `json:"catalog"`
+	Catalog CatalogModel `json:"catalog"`
 }
 
 type CreateNamespaceBody struct {

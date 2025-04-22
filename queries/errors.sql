@@ -32,6 +32,8 @@ ORDER BY
 
 SELECT logs.experiment_id, COUNT(level) AS error_count FROM logs GROUP BY logs.experiment_id ORDER BY error_count DESC;
 
+SELECT * FROM logs ORDER BY step_id ASC;
+
 SELECT * FROM LOGS JOIN experiments ON logs.experiment_id = experiments.id WHERE logs.type LIKE '%listCatalog%';
 SELECT * FROM LOGS JOIN experiments ON logs.experiment_id = experiments.id WHERE experiments.catalog = 'unity' AND experiments.id = '942f5a30-d212-4442-bd16-5139f108c25c' ORDER BY logs.thread_id ASC;
 

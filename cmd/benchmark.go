@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"benchmark/internal"
 	"benchmark/internal/catalog/polaris"
+	"benchmark/internal/catalog/unity"
 	"benchmark/internal/common"
-	"benchmark/internal/execution"
 	"context"
 	"encoding/json"
 	"flag"
@@ -56,7 +57,6 @@ func newBenchmarkCommand() *Command {
 		Handler: func() error {
 			benchmarkType := common.BenchmarkType(config.BenchmarkID)
 			entityType := common.EntityType(config.Entity)
-
 			duration, err := time.ParseDuration(config.Duration)
 			if err != nil {
 				log.Fatal(err)
@@ -96,7 +96,16 @@ func runBenchmark(experiment common.Experiment) error {
 
 	done := make(chan error)
 
-	engine := execution.NewBenchmarkEngine(experiment.ID.String(), experiment.Catalog, experiment.Threads, experiment.Duration)
+	var catalog internal.Catalog
+	switch experiment.Catalog {
+	case "polaris":
+		catalog = &polaris.Catalog{}
+	case "unity":
+
+		catalog = &unity.Catalog{}
+	}
+
+	engine := internal.NewBenchmarkEngine(experiment.ID.String(), catalog, experiment.Threads, experiment.Duration)
 	startTime := time.Now()
 	experiment.StartTimestamp = startTime
 
