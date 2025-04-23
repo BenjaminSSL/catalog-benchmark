@@ -23,3 +23,5 @@ output/*
 benchmark.duckdb
 benchmark.duckdb.*
 database/
+
+driver
