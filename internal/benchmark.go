@@ -1,57 +1,19 @@
 package internal
 
 import (
-	"benchmark/internal/common"
 	"context"
 	"github.com/google/uuid"
-	"net/http"
-	"sync"
-	"time"
 )
 
-type WorkerConfig struct {
-	workerFunc WorkerFunc
-	threads    int
-	params     map[string]interface{}
-}
-
-type BenchmarkEngine struct {
-	ExperimentID string
-	threads      int
-	duration     time.Duration
-	Catalog      Catalog
-	client       *http.Client
-}
-
-func NewBenchmarkEngine(experimentID string, catalog Catalog, threads int, duration time.Duration) *BenchmarkEngine {
-	return &BenchmarkEngine{
-		ExperimentID: experimentID,
-		Catalog:      catalog,
-		threads:      threads,
-		duration:     duration,
-		client: &http.Client{
-			Timeout: time.Second * 30,
-			Transport: &http.Transport{
-				MaxIdleConns:        10000,
-				MaxIdleConnsPerHost: 1000,
-				MaxConnsPerHost:     1000,
-				DisableKeepAlives:   false,
-				IdleConnTimeout:     90 * time.Second,
-				TLSHandshakeTimeout: 10 * time.Second,
-			},
-		},
-	}
-}
-
-func (e *BenchmarkEngine) GrantPermissionCatalog(ctx context.Context, catalogName string) error {
-	_, err := e.Catalog.GrantPermissionCatalog(ctx, catalogName, map[string]interface{}{
+func grantPermissionCatalog(ctx context.Context, catalog Catalog, catalogName string) error {
+	_, err := catalog.GrantPermissionCatalog(ctx, catalogName, map[string]interface{}{
 		"privilege": "TABLE_WRITE_DATA",
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = e.Catalog.GrantPermissionCatalog(ctx, catalogName, map[string]interface{}{
+	_, err = catalog.GrantPermissionCatalog(ctx, catalogName, map[string]interface{}{
 		"privilege": "TABLE_READ_DATA",
 	})
 	if err != nil {
@@ -61,10 +23,10 @@ func (e *BenchmarkEngine) GrantPermissionCatalog(ctx context.Context, catalogNam
 	return nil
 }
 
-func (e *BenchmarkEngine) CreateCatalog(ctx context.Context) (string, error) {
+func createCatalog(ctx context.Context, catalog Catalog) (string, error) {
 	catalogName := uuid.NewString()
 
-	_, err := e.Catalog.CreateCatalog(ctx, catalogName)
+	_, err := catalog.CreateCatalog(ctx, catalogName)
 	if err != nil {
 		return "", err
 	}
@@ -72,10 +34,10 @@ func (e *BenchmarkEngine) CreateCatalog(ctx context.Context) (string, error) {
 	return catalogName, nil
 }
 
-func (e *BenchmarkEngine) CreteSchema(ctx context.Context, catalogName string) (string, error) {
+func createSchema(ctx context.Context, catalog Catalog, catalogName string) (string, error) {
 	schemaName := uuid.NewString()
 
-	_, err := e.Catalog.CreateSchema(ctx, catalogName, schemaName)
+	_, err := catalog.CreateSchema(ctx, catalogName, schemaName)
 	if err != nil {
 		return "", err
 	}
@@ -83,487 +45,487 @@ func (e *BenchmarkEngine) CreteSchema(ctx context.Context, catalogName string) (
 	return schemaName, nil
 }
 
-func (e *BenchmarkEngine) RunCreateCatalog(ctx context.Context) error {
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createCatalogWorker, e.threads, make(map[string]interface{})},
-	})
+func SetupCreateCatalog(threads int) ([]WorkerConfig, error) {
+	return []WorkerConfig{
+		{createCatalogWorker, threads, make(map[string]interface{})},
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreatePrincipal(ctx context.Context) error {
+func SetupCreatePrincipal(threads int) ([]WorkerConfig, error) {
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createPrincipalWorker, e.threads, make(map[string]interface{})},
-	})
+	return []WorkerConfig{
+		{createPrincipalWorker, threads, make(map[string]interface{})},
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateSchema(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createSchemaWorker, e.threads, map[string]interface{}{"catalogName": catalogName}},
-	})
+	return []WorkerConfig{
+		{createSchemaWorker, threads, map[string]interface{}{"catalogName": catalogName}},
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateTable(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = e.GrantPermissionCatalog(ctx, catalogName)
+	err = grantPermissionCatalog(ctx, catalog, catalogName)
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createTableWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createTableWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateView(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createViewWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createViewWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateFunction(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateFunction(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createFunctionWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createFunctionWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
-func (e *BenchmarkEngine) RunCreateModel(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createModelWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createModelWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
-func (e *BenchmarkEngine) RunCreateVolume(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createVolumeWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createVolumeWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteCatalog(ctx context.Context) error {
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createDeleteCatalogWorker, e.threads, make(map[string]interface{})},
-	})
+func SetupCreateDeleteCatalog(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	return []WorkerConfig{
+		{createDeleteCatalogWorker, threads, make(map[string]interface{})},
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteSchema(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createDeleteSchemaWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createDeleteSchemaWorker, threads, map[string]interface{}{
 			"catalogName": catalogName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeletePrincipal(ctx context.Context) error {
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createDeletePrincipalWorker, e.threads, make(map[string]interface{})},
-	})
+func SetupCreateDeletePrincipal(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	return []WorkerConfig{
+		{createDeletePrincipalWorker, threads, make(map[string]interface{})},
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteTable(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = e.GrantPermissionCatalog(ctx, catalogName)
+	err = grantPermissionCatalog(ctx, catalog, catalogName)
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createDeleteTableWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createDeleteTableWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteView(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createDeleteViewWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createDeleteViewWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteFunction(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteFunction(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createFunctionWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createFunctionWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteModel(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createDeleteModelWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createDeleteModelWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
-func (e *BenchmarkEngine) RunCreateDeleteVolume(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{createDeleteVolumeWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{createDeleteVolumeWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateCatalog(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateCatalog(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{updateCatalogWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{updateCatalogWorker, threads, map[string]interface{}{
 			"catalogName": catalogName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunUpdatePrincipal(ctx context.Context) error {
+func SetupUpdatePrincipal(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
 	principalName := uuid.NewString()
 
-	_, err := e.Catalog.CreatePrincipal(ctx, principalName)
+	_, err := catalog.CreatePrincipal(ctx, principalName)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{updatePrincipalWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{updatePrincipalWorker, threads, map[string]interface{}{
 			"principalName": principalName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateSchema(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{updateSchemaWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{updateSchemaWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateTable(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tableName := uuid.NewString()
 
-	_, err = e.Catalog.CreatePrincipal(ctx, tableName)
+	_, err = catalog.CreatePrincipal(ctx, tableName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = e.GrantPermissionCatalog(ctx, tableName)
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{updateTableWorker, e.threads, map[string]interface{}{
+	err = grantPermissionCatalog(ctx, catalog, catalogName)
+	return []WorkerConfig{
+		{updateTableWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName, "tableName": tableName}},
-	})
+	}, nil
 
 }
 
-func (e *BenchmarkEngine) RunUpdateView(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	viewName := uuid.NewString()
-	_, err = e.Catalog.CreateView(ctx, catalogName, schemaName, viewName)
+	_, err = catalog.CreateView(ctx, catalogName, schemaName, viewName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{updateViewWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{updateViewWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName, "viewName": viewName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateModel(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	modelName := uuid.NewString()
 
-	_, err = e.Catalog.CreateModel(ctx, catalogName, schemaName, modelName)
+	_, err = catalog.CreateModel(ctx, catalogName, schemaName, modelName)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{updateModelWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{updateModelWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName, "modelName": modelName}},
-	})
+	}, nil
 }
-func (e *BenchmarkEngine) RunUpdateVolume(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	volumeName := uuid.NewString()
-	_, err = e.Catalog.CreateVolume(ctx, catalogName, schemaName, volumeName)
+	_, err = catalog.CreateVolume(ctx, catalogName, schemaName, volumeName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
-		{updateVolumeWorker, e.threads, map[string]interface{}{
+	return []WorkerConfig{
+		{updateVolumeWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName, "volumeName": volumeName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteListSchema(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteListSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
+	return []WorkerConfig{
 		{listSchemasWorker, 1, map[string]interface{}{"catalogName": catalogName}},
-		{createDeleteSchemaWorker, e.threads - 1, map[string]interface{}{"catalogName": catalogName}},
-	})
+		{createDeleteSchemaWorker, threads - 1, map[string]interface{}{"catalogName": catalogName}},
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteListCatalog(ctx context.Context) error {
-	return e.runBenchmark(ctx, []WorkerConfig{
+func SetupCreateDeleteListCatalog(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	return []WorkerConfig{
 		{listCatalogsWorker, 1, make(map[string]interface{})},
-		{createDeleteCatalogWorker, e.threads - 1, make(map[string]interface{})},
-	})
+		{createDeleteCatalogWorker, threads - 1, make(map[string]interface{})},
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteListPrincipal(ctx context.Context) error {
-	return e.runBenchmark(ctx, []WorkerConfig{
+func SetupCreateDeleteListPrincipal(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	return []WorkerConfig{
 		{listPrincipalsWorker, 1, make(map[string]interface{})},
-		{createDeletePrincipalWorker, e.threads - 1, make(map[string]interface{})},
-	})
+		{createDeletePrincipalWorker, threads - 1, make(map[string]interface{})},
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteListTable(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteListTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = e.GrantPermissionCatalog(ctx, catalogName)
+	err = grantPermissionCatalog(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
+	return []WorkerConfig{
 		{listTablesWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteTableWorker, e.threads - 1, map[string]interface{}{
+		{createDeleteTableWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunCreateDeleteListView(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteListView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
+	return []WorkerConfig{
 		{listViewsWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteViewWorker, e.threads - 1, map[string]interface{}{
+		{createDeleteViewWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
-func (e *BenchmarkEngine) RunCreateDeleteListFunction(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteListFunction(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return e.runBenchmark(ctx, []WorkerConfig{
+	return []WorkerConfig{
 		{listFunctionsWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteFunctionWorker, e.threads - 1, map[string]interface{}{
+		{createDeleteFunctionWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
-func (e *BenchmarkEngine) RunCreateDeleteListModel(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteListModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
+	return []WorkerConfig{
 		{listModelsWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteModelWorker, e.threads - 1, map[string]interface{}{
+		{createDeleteModelWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
-func (e *BenchmarkEngine) RunCreateDeleteListVolume(ctx context.Context) error {
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupCreateDeleteListVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, []WorkerConfig{
+	return []WorkerConfig{
 		{listVolumesWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteVolumeWorker, e.threads - 1, map[string]interface{}{
+		{createDeleteVolumeWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-	})
+	}, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateGetCatalog(ctx context.Context) error {
-	workers := make([]WorkerConfig, e.threads)
-	for thread := range e.threads {
-		catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateGetCatalog(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	workers := make([]WorkerConfig, threads)
+	for thread := range threads {
+		catalogName, err := createCatalog(ctx, catalog)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		workers[thread] = WorkerConfig{
@@ -574,17 +536,17 @@ func (e *BenchmarkEngine) RunUpdateGetCatalog(ctx context.Context) error {
 			},
 		}
 	}
-	return e.runBenchmark(ctx, workers)
+	return workers, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateGetPrincipal(ctx context.Context) error {
-	workers := make([]WorkerConfig, e.threads)
+func SetupUpdateGetPrincipal(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	workers := make([]WorkerConfig, threads)
 
-	for thread := range e.threads {
+	for thread := range threads {
 		principalName := uuid.NewString()
-		_, err := e.Catalog.CreatePrincipal(ctx, principalName)
+		_, err := catalog.CreatePrincipal(ctx, principalName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		workers[thread] = WorkerConfig{
 			workerFunc: updateGetPrincipalWorker,
@@ -594,21 +556,21 @@ func (e *BenchmarkEngine) RunUpdateGetPrincipal(ctx context.Context) error {
 			},
 		}
 	}
-	return e.runBenchmark(ctx, workers)
+	return workers, nil
 
 }
 
-func (e *BenchmarkEngine) RunUpdateGetSchema(ctx context.Context) error {
-	workers := make([]WorkerConfig, e.threads)
+func SetupUpdateGetSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	workers := make([]WorkerConfig, threads)
 
-	catalogName, err := e.CreateCatalog(ctx)
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for thread := range e.threads {
-		schemaName, err := e.CreteSchema(ctx, catalogName)
+	for thread := range threads {
+		schemaName, err := createSchema(ctx, catalog, catalogName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		workers[thread] = WorkerConfig{
@@ -622,27 +584,27 @@ func (e *BenchmarkEngine) RunUpdateGetSchema(ctx context.Context) error {
 
 	}
 
-	return e.runBenchmark(ctx, workers)
+	return workers, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateGetTable(ctx context.Context) error {
-	workers := make([]WorkerConfig, e.threads)
+func SetupUpdateGetTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	workers := make([]WorkerConfig, threads)
 
-	catalogName, err := e.CreateCatalog(ctx)
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for thread := range e.threads {
+	for thread := range threads {
 		tableName := uuid.NewString()
-		_, err := e.Catalog.CreateTable(ctx, catalogName, schemaName, tableName)
+		_, err := catalog.CreateTable(ctx, catalogName, schemaName, tableName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		workers[thread] = WorkerConfig{
@@ -656,32 +618,32 @@ func (e *BenchmarkEngine) RunUpdateGetTable(ctx context.Context) error {
 		}
 	}
 
-	err = e.GrantPermissionCatalog(ctx, catalogName)
+	err = grantPermissionCatalog(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.runBenchmark(ctx, workers)
+	return workers, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateGetView(ctx context.Context) error {
-	workers := make([]WorkerConfig, e.threads)
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateGetView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	workers := make([]WorkerConfig, threads)
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for thread := range e.threads {
+	for thread := range threads {
 
 		viewName := uuid.NewString()
-		_, err = e.Catalog.CreateView(ctx, catalogName, schemaName, viewName)
+		_, err = catalog.CreateView(ctx, catalogName, schemaName, viewName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		workers[thread] = WorkerConfig{
@@ -693,25 +655,25 @@ func (e *BenchmarkEngine) RunUpdateGetView(ctx context.Context) error {
 		}
 	}
 
-	return e.runBenchmark(ctx, workers)
+	return workers, nil
 }
 
-func (e *BenchmarkEngine) RunUpdateGetModel(ctx context.Context) error {
-	workers := make([]WorkerConfig, e.threads)
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateGetModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	workers := make([]WorkerConfig, threads)
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for thread := range e.threads {
+	for thread := range threads {
 		modelName := uuid.NewString()
-		_, err = e.Catalog.CreateModel(ctx, catalogName, schemaName, modelName)
+		_, err = catalog.CreateModel(ctx, catalogName, schemaName, modelName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		workers[thread] = WorkerConfig{
@@ -723,25 +685,25 @@ func (e *BenchmarkEngine) RunUpdateGetModel(ctx context.Context) error {
 		}
 
 	}
-	return e.runBenchmark(ctx, workers)
+	return workers, nil
 }
-func (e *BenchmarkEngine) RunUpdateGetVolume(ctx context.Context) error {
-	workers := make([]WorkerConfig, e.threads)
-	catalogName, err := e.CreateCatalog(ctx)
+func SetupUpdateGetVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+	workers := make([]WorkerConfig, threads)
+	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	schemaName, err := e.CreteSchema(ctx, catalogName)
+	schemaName, err := createSchema(ctx, catalog, catalogName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for thread := range e.threads {
+	for thread := range threads {
 		volumeName := uuid.NewString()
-		_, err = e.Catalog.CreateVolume(ctx, catalogName, schemaName, volumeName)
+		_, err = catalog.CreateVolume(ctx, catalogName, schemaName, volumeName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		workers[thread] = WorkerConfig{
@@ -754,43 +716,5 @@ func (e *BenchmarkEngine) RunUpdateGetVolume(ctx context.Context) error {
 
 	}
 
-	return e.runBenchmark(ctx, workers)
-}
-
-func (e *BenchmarkEngine) runBenchmark(ctx context.Context, workers []WorkerConfig) error {
-	ctx, cancel := context.WithTimeout(ctx, e.duration)
-	defer cancel()
-
-	var wg sync.WaitGroup
-
-	threadAllocated := 0
-
-	for _, worker := range workers {
-		for t := 0; t < worker.threads; t++ {
-			threadID := threadAllocated
-			wg.Add(1)
-
-			go func(threadID int, config WorkerConfig) {
-				defer wg.Done()
-				logger, _ := common.NewRoutineBatchLogger("./output/logs/tmp", e.ExperimentID, threadID, 20)
-				defer logger.Close()
-
-				w := &Worker{
-					Func:    config.workerFunc,
-					Client:  e.client,
-					Logger:  logger,
-					Catalog: e.Catalog, // or config.catalog if it varies per worker
-					Step:    1,
-				}
-
-				w.Run(ctx, config.params)
-
-			}(threadID, worker)
-
-			threadAllocated++
-		}
-	}
-
-	wg.Wait()
-	return nil
+	return workers, nil
 }

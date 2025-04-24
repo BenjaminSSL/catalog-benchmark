@@ -1,0 +1,86 @@
+package internal
+
+import (
+	"benchmark/internal/common"
+	"context"
+	"net/http"
+	"sync"
+	"time"
+)
+
+type WorkerConfig struct {
+	workerFunc WorkerFunc
+	threads    int
+	params     map[string]interface{}
+}
+
+type BenchmarkEngine struct {
+	ExperimentID string
+	threads      int
+	duration     time.Duration
+	Catalog      Catalog
+	client       *http.Client
+}
+
+func NewBenchmarkEngine(experimentID string, catalog Catalog, threads int, duration time.Duration) *BenchmarkEngine {
+	return &BenchmarkEngine{
+		ExperimentID: experimentID,
+		Catalog:      catalog,
+		threads:      threads,
+		duration:     duration,
+		client: &http.Client{
+			Timeout: time.Second * 30,
+			Transport: &http.Transport{
+				MaxIdleConns:        10000,
+				MaxIdleConnsPerHost: 1000,
+				MaxConnsPerHost:     1000,
+				DisableKeepAlives:   false,
+				IdleConnTimeout:     90 * time.Second,
+				TLSHandshakeTimeout: 10 * time.Second,
+			},
+		},
+	}
+}
+
+func (e *BenchmarkEngine) RunBenchmark(ctx context.Context, workers []WorkerConfig) error {
+	ctx, cancel := context.WithTimeout(ctx, e.duration)
+	defer cancel()
+
+	var wg sync.WaitGroup
+
+	threadAllocated := 0
+
+	for _, worker := range workers {
+		for t := 0; t < worker.threads; t++ {
+			threadID := threadAllocated
+			wg.Add(1)
+
+			go func(threadID int, config WorkerConfig) {
+				defer wg.Done()
+				logger, _ := common.NewRoutineBatchLogger("./output/logs/tmp", e.ExperimentID, threadID, 20)
+				defer logger.Close()
+
+				w := &Worker{
+					Func:    config.workerFunc,
+					Client:  e.client,
+					Logger:  logger,
+					Catalog: e.Catalog, // or config.catalog if it varies per worker
+					Step:    1,
+				}
+
+				paramsCopy := make(map[string]interface{})
+				for k, v := range config.params {
+					paramsCopy[k] = v
+				}
+
+				w.Run(ctx, paramsCopy)
+
+			}(threadID, worker)
+
+			threadAllocated++
+		}
+	}
+
+	wg.Wait()
+	return nil
+}

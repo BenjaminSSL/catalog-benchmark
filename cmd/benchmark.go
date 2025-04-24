@@ -78,195 +78,53 @@ func newBenchmarkCommand() *Command {
 func runBenchmark(experiment common.Experiment) error {
 	log.Printf("Starting experiment %s with benchmark scenario %d on entity %s", experiment.ID, experiment.BenchmarkID, experiment.Entity)
 
-	if experiment.Catalog == "polaris" {
-		token, err := common.FetchPolarisToken()
-		if err != nil {
-			return err
-		}
-
-		polaris.SetToken(token)
+	// Setup the catalog
+	catalog, err := setupCatalog(experiment.Catalog)
+	if err != nil {
+		return fmt.Errorf("failed to setup catalog: %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-
 	defer cancel()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	done := make(chan error, 1)
 
-	done := make(chan error)
-
-	var catalog internal.Catalog
-	switch experiment.Catalog {
-	case "polaris":
-		catalog = &polaris.Catalog{}
-	case "unity":
-
-		catalog = &unity.Catalog{}
-	}
-
+	// Setup the benchmark engine
 	engine := internal.NewBenchmarkEngine(experiment.ID.String(), catalog, experiment.Threads, experiment.Duration)
+
+	// Set start time
 	startTime := time.Now()
 	experiment.StartTimestamp = startTime
 
-	defer common.DeleteLogs("./output/logs/tmp")
-
-	go func() {
-		switch experiment.BenchmarkID {
-		case common.CreateBenchmark:
-			switch experiment.Entity {
-			case common.CatalogEntity:
-				done <- engine.RunCreateCatalog(ctx)
-			case common.PrincipalEntity:
-				done <- engine.RunCreatePrincipal(ctx)
-			case common.SchemaEntity:
-				done <- engine.RunCreateSchema(ctx)
-			case common.TableEntity:
-				done <- engine.RunCreateTable(ctx)
-			case common.ViewEntity:
-				done <- engine.RunCreateView(ctx)
-			case common.FunctionEntity:
-				done <- engine.RunCreateFunction(ctx)
-			case common.ModelEntity:
-				done <- engine.RunCreateModel(ctx)
-			case common.VolumeEntity:
-				done <- engine.RunCreateVolume(ctx)
-			default:
-				log.Fatalf("unknown entity type: %s", experiment.Entity)
-			}
-		case common.CreateDeleteBenchmark:
-			switch experiment.Entity {
-			case common.CatalogEntity:
-				done <- engine.RunCreateDeleteCatalog(ctx)
-			case common.PrincipalEntity:
-				done <- engine.RunCreateDeletePrincipal(ctx)
-			case common.SchemaEntity:
-				done <- engine.RunCreateDeleteSchema(ctx)
-			case common.TableEntity:
-				done <- engine.RunCreateDeleteTable(ctx)
-			case common.ViewEntity:
-				done <- engine.RunCreateDeleteView(ctx)
-			case common.FunctionEntity:
-				done <- engine.RunCreateDeleteFunction(ctx)
-			case common.ModelEntity:
-				done <- engine.RunCreateDeleteModel(ctx)
-			case common.VolumeEntity:
-				done <- engine.RunCreateDeleteVolume(ctx)
-			default:
-				log.Fatalf("unknown entity type: %s", experiment.Entity)
-			}
-		case common.UpdateBenchmark:
-			switch experiment.Entity {
-			case common.CatalogEntity:
-				done <- engine.RunUpdateCatalog(ctx)
-			case common.PrincipalEntity:
-				done <- engine.RunUpdatePrincipal(ctx)
-			case common.SchemaEntity:
-				done <- engine.RunUpdateSchema(ctx)
-			case common.TableEntity:
-				done <- engine.RunUpdateTable(ctx)
-			case common.ViewEntity:
-				done <- engine.RunUpdateView(ctx)
-			case common.ModelEntity:
-				done <- engine.RunUpdateModel(ctx)
-			case common.VolumeEntity:
-				done <- engine.RunUpdateVolume(ctx)
-			default:
-				log.Fatalf("unknown entity type: %s", experiment.Entity)
-
-			}
-		case common.CreateDeleteListBenchmark:
-			switch experiment.Entity {
-			case common.CatalogEntity:
-				done <- engine.RunCreateDeleteListCatalog(ctx)
-			case common.PrincipalEntity:
-				done <- engine.RunCreateDeleteListPrincipal(ctx)
-			case common.SchemaEntity:
-				done <- engine.RunCreateDeleteListSchema(ctx)
-			case common.TableEntity:
-				done <- engine.RunCreateDeleteListTable(ctx)
-			case common.ViewEntity:
-				done <- engine.RunCreateDeleteListView(ctx)
-			case common.FunctionEntity:
-				done <- engine.RunCreateDeleteListFunction(ctx)
-			case common.ModelEntity:
-				done <- engine.RunCreateDeleteListModel(ctx)
-			case common.VolumeEntity:
-				done <- engine.RunCreateDeleteListVolume(ctx)
-			default:
-				log.Fatalf("unknown entity type: %s", experiment.Entity)
-
-			}
-		case common.UpdateGetBenchmark:
-			switch experiment.Entity {
-			case common.CatalogEntity:
-				done <- engine.RunUpdateGetCatalog(ctx)
-			case common.PrincipalEntity:
-				done <- engine.RunUpdateGetPrincipal(ctx)
-			case common.SchemaEntity:
-				done <- engine.RunUpdateGetSchema(ctx)
-			case common.TableEntity:
-				done <- engine.RunUpdateGetTable(ctx)
-			case common.ViewEntity:
-				done <- engine.RunUpdateGetView(ctx)
-			case common.ModelEntity:
-				done <- engine.RunUpdateGetModel(ctx)
-			case common.VolumeEntity:
-				done <- engine.RunUpdateGetVolume(ctx)
-			default:
-				log.Fatalf("unknown entity type: %s", experiment.Entity)
-			}
-
-		default:
-			done <- nil
-		}
-
-	}()
-
-	go func() {
-		sig := <-quit
-		log.Printf("Received signal \"%v\", shutting down...", sig)
-		log.Printf("Stopping experiment %s with benchmark scenario %d\n", experiment.ID, experiment.BenchmarkID)
-		cancel()
-		done <- nil // Gracefully stop
-	}()
-
-	select {
-	case err := <-done:
+	// Clean up logs directory
+	defer func() {
+		err := common.DeleteLogs("./output/logs/tmp")
 		if err != nil {
-			return err
+			log.Printf("Error deleting logs: %s", err)
 		}
+	}()
 
-		elapsed := time.Since(startTime)
-		experiment.EndTimestamp = time.Now()
-		log.Printf("Finished in %.2f seconds experiment %s\n", elapsed.Seconds(), experiment.ID)
-
-		// Start benchmark evaluation
-		var wg sync.WaitGroup
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			log.Printf("Merging logs...\n")
-			// Merge logs after evaluation
-			if err := common.MergeLogs("./output/logs/tmp", experiment.ID.String()); err != nil {
-				log.Printf("Error merging logs: %s\n", err)
-			}
-			log.Printf("Logs merged\n")
-
-			log.Printf("Saving experiment...\n")
-			if err := saveExperiment(experiment, "./output/experiments"); err != nil {
-				log.Printf("Error saving experiment: %s\n", err)
-			}
-
-			log.Printf("Experiment saved\n")
-		}()
-
-		// Wait for benchmark and log merge to finish
-		wg.Wait()
-		return nil
+	workers, err := setupWorkers(ctx, experiment, catalog)
+	if err != nil {
+		return err
 	}
+
+	go func(workers []internal.WorkerConfig) {
+		if err = engine.RunBenchmark(ctx, workers); err != nil {
+			log.Printf("Error running benchmark: %s", err)
+			done <- err
+			return
+		}
+		done <- nil
+		log.Printf("Benchmark completed successfully")
+
+	}(workers)
+
+	go handleShutdownSignal(quit, done, cancel, experiment)
+
+	return processResults(done, startTime, experiment)
 
 }
 
@@ -293,4 +151,160 @@ func saveExperiment(experiment common.Experiment, dir string) error {
 	}
 
 	return nil
+}
+
+func handleShutdownSignal(quit chan os.Signal, done chan error, cancel context.CancelFunc, experiment common.Experiment) {
+	sig := <-quit
+	log.Printf("Received signal %q, shutting down...", sig)
+	log.Printf("Stopping experiment %s with benchmark scenario %d", experiment.ID, experiment.BenchmarkID)
+	cancel()
+	done <- nil
+}
+
+func setupCatalog(catalog string) (internal.Catalog, error) {
+	switch catalog {
+	case "polaris":
+		token, err := common.FetchPolarisToken()
+		if err != nil {
+			return nil, err
+		}
+		polaris.SetToken(token)
+		return &polaris.Catalog{}, nil
+	case "unity":
+		return &unity.Catalog{}, nil
+	default:
+		return nil, fmt.Errorf("unsupported catalog %s", catalog)
+	}
+}
+
+func setupWorkers(ctx context.Context, experiment common.Experiment, catalog internal.Catalog) ([]internal.WorkerConfig, error) {
+	var benchmarkMap map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error)
+	switch experiment.BenchmarkID {
+	case common.CreateBenchmark:
+		benchmarkMap = createBenchmarkMap()
+	case common.CreateDeleteBenchmark:
+		benchmarkMap = createDeleteBenchmarkMap()
+	case common.UpdateBenchmark:
+		benchmarkMap = updateBenchmarkMap()
+	case common.CreateDeleteListBenchmark:
+		benchmarkMap = createDeleteListBenchmarkMap()
+	case common.UpdateGetBenchmark:
+		benchmarkMap = updateGetBenchmarkMap()
+
+	default:
+		return nil, fmt.Errorf("unsupported benchmark type %d", experiment.BenchmarkID)
+	}
+
+	workerFunc, exists := benchmarkMap[experiment.Entity]
+	if !exists {
+		return nil, fmt.Errorf("unsupported entity type %s for benchmark %d", experiment.Entity, experiment.BenchmarkID)
+	}
+
+	workers, err := workerFunc(ctx, catalog, experiment.Threads)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup workers: %v", err)
+	}
+
+	return workers, nil
+}
+
+func processResults(done chan error, startTime time.Time, experiment common.Experiment) error {
+	err := <-done
+	if err != nil {
+		return err
+	}
+
+	elapsed := time.Since(startTime)
+	experiment.EndTimestamp = time.Now()
+	log.Printf("Finished in %.2f seconds experiment %s", elapsed.Seconds(), experiment.ID)
+
+	// Process experiment results in the background
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		log.Printf("Merging logs...")
+		if err := common.MergeLogs("./output/logs/tmp", experiment.ID.String()); err != nil {
+			log.Printf("Error merging logs: %s", err)
+		}
+		log.Printf("Logs merged")
+
+		log.Printf("Saving experiment...")
+		if err := saveExperiment(experiment, "./output/experiments"); err != nil {
+			log.Printf("Error saving experiment: %s", err)
+		}
+		log.Printf("Experiment saved")
+	}()
+
+	// Wait for result processing to complete
+	wg.Wait()
+	return nil
+}
+
+func createBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
+		common.CatalogEntity: func(_ context.Context, _ internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+			return internal.SetupCreateCatalog(threads)
+		},
+		common.PrincipalEntity: func(_ context.Context, _ internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+			return internal.SetupCreatePrincipal(threads)
+		},
+		common.SchemaEntity:   internal.SetupCreateSchema,
+		common.TableEntity:    internal.SetupCreateTable,
+		common.ViewEntity:     internal.SetupCreateView,
+		common.FunctionEntity: internal.SetupCreateFunction,
+		common.ModelEntity:    internal.SetupCreateModel,
+		common.VolumeEntity:   internal.SetupCreateVolume,
+	}
+}
+
+func createDeleteBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
+		common.CatalogEntity:   internal.SetupCreateDeleteCatalog,
+		common.PrincipalEntity: internal.SetupCreateDeletePrincipal,
+		common.SchemaEntity:    internal.SetupCreateDeleteSchema,
+		common.TableEntity:     internal.SetupCreateDeleteTable,
+		common.ViewEntity:      internal.SetupCreateDeleteView,
+		common.FunctionEntity:  internal.SetupCreateDeleteFunction,
+		common.ModelEntity:     internal.SetupCreateDeleteModel,
+		common.VolumeEntity:    internal.SetupCreateDeleteVolume,
+	}
+}
+
+func updateBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
+		common.CatalogEntity:   internal.SetupUpdateCatalog,
+		common.PrincipalEntity: internal.SetupUpdatePrincipal,
+		common.SchemaEntity:    internal.SetupUpdateSchema,
+		common.TableEntity:     internal.SetupUpdateTable,
+		common.ViewEntity:      internal.SetupUpdateView,
+		common.ModelEntity:     internal.SetupUpdateModel,
+		common.VolumeEntity:    internal.SetupUpdateVolume,
+	}
+}
+
+func createDeleteListBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
+		common.CatalogEntity:   internal.SetupCreateDeleteListCatalog,
+		common.PrincipalEntity: internal.SetupCreateDeleteListPrincipal,
+		common.SchemaEntity:    internal.SetupCreateDeleteListSchema,
+		common.TableEntity:     internal.SetupCreateDeleteListTable,
+		common.ViewEntity:      internal.SetupCreateDeleteListView,
+		common.FunctionEntity:  internal.SetupCreateDeleteListFunction,
+		common.ModelEntity:     internal.SetupCreateDeleteListModel,
+		common.VolumeEntity:    internal.SetupCreateDeleteListVolume,
+	}
+}
+
+func updateGetBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
+		common.CatalogEntity:   internal.SetupUpdateGetCatalog,
+		common.PrincipalEntity: internal.SetupUpdateGetPrincipal,
+		common.SchemaEntity:    internal.SetupUpdateGetSchema,
+		common.TableEntity:     internal.SetupUpdateGetTable,
+		common.ViewEntity:      internal.SetupUpdateGetView,
+		common.ModelEntity:     internal.SetupUpdateGetModel,
+		common.VolumeEntity:    internal.SetupUpdateGetVolume,
+	}
 }
