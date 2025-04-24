@@ -197,22 +197,22 @@ func runBenchmark(experiment common.Experiment) error {
 				log.Fatalf("unknown entity type: %s", experiment.Entity)
 
 			}
-		case common.CreateUpdateGetBenchmark:
+		case common.UpdateGetBenchmark:
 			switch experiment.Entity {
 			case common.CatalogEntity:
-				done <- engine.RunCreateUpdateGetCatalog(ctx)
+				done <- engine.RunUpdateGetCatalog(ctx)
 			case common.PrincipalEntity:
-				done <- engine.RunCreateUpdateGetPrincipal(ctx)
+				done <- engine.RunUpdateGetPrincipal(ctx)
 			case common.SchemaEntity:
-				done <- engine.RunCreateUpdateGetSchema(ctx)
+				done <- engine.RunUpdateGetSchema(ctx)
 			case common.TableEntity:
-				done <- engine.RunCreateUpdateGetTable(ctx)
+				done <- engine.RunUpdateGetTable(ctx)
 			case common.ViewEntity:
-				done <- engine.RunCreateUpdateGetView(ctx)
+				done <- engine.RunUpdateGetView(ctx)
 			case common.ModelEntity:
-				done <- engine.RunCreateUpdateGetModel(ctx)
+				done <- engine.RunUpdateGetModel(ctx)
 			case common.VolumeEntity:
-				done <- engine.RunCreateUpdateGetVolume(ctx)
+				done <- engine.RunUpdateGetVolume(ctx)
 			default:
 				log.Fatalf("unknown entity type: %s", experiment.Entity)
 			}

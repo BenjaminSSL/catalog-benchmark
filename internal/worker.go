@@ -58,9 +58,14 @@ func (w *Worker) IncrementStep() {
 }
 
 func (w *Worker) Run(ctx context.Context, params map[string]interface{}) {
+	// EntityVersion counter for update operations
+	entityVersion := 1
+	params["entityVersion"] = entityVersion
 	for ctx.Err() == nil {
 		w.Func(ctx, w, params)
 		w.Step++
+		entityVersion++
+		params["entityVersion"] = entityVersion
 	}
 }
 
@@ -237,7 +242,7 @@ func createDeleteVolumeWorker(ctx context.Context, w *Worker, params map[string]
 
 func updateCatalogWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	catalogName := params["catalogName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateCatalog(ctx, catalogName, map[string]interface{}{
 		"entityVersion": entityVersion,
@@ -248,7 +253,7 @@ func updateCatalogWorker(ctx context.Context, w *Worker, params map[string]inter
 
 func updatePrincipalWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	principalName := params["principalName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdatePrincipal(ctx, principalName, map[string]interface{}{
 		"entityVersion": entityVersion,
@@ -259,7 +264,7 @@ func updatePrincipalWorker(ctx context.Context, w *Worker, params map[string]int
 func updateSchemaWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateSchema(ctx, catalogName, schemaName, map[string]interface{}{
 		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
@@ -270,7 +275,7 @@ func updateTableWorker(ctx context.Context, w *Worker, params map[string]interfa
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
 	tableName := params["tableName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateTable(ctx, catalogName, schemaName, tableName, map[string]interface{}{
 		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
@@ -282,7 +287,7 @@ func updateViewWorker(ctx context.Context, w *Worker, params map[string]interfac
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
 	viewName := params["viewName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateView(ctx, catalogName, schemaName, viewName, map[string]interface{}{
 		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
@@ -294,7 +299,7 @@ func updateModelWorker(ctx context.Context, w *Worker, params map[string]interfa
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
 	modelName := params["modelName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateModel(ctx, catalogName, schemaName, modelName, map[string]interface{}{
 		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
@@ -306,7 +311,7 @@ func updateVolumeWorker(ctx context.Context, w *Worker, params map[string]interf
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
 	volumeName := params["volumeName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateVolume(ctx, catalogName, schemaName, volumeName, map[string]interface{}{
 		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
@@ -314,9 +319,9 @@ func updateVolumeWorker(ctx context.Context, w *Worker, params map[string]interf
 	w.Log(resp, err)
 }
 
-func createUpdateGetCatalogWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
+func updateGetCatalogWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	catalogName := params["catalogName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateCatalog(ctx, catalogName, map[string]interface{}{
 		"entityVersion": entityVersion,
@@ -329,9 +334,9 @@ func createUpdateGetCatalogWorker(ctx context.Context, w *Worker, params map[str
 	w.Log(resp, err)
 }
 
-func createUpdateGetPrincipalWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
+func updateGetPrincipalWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	principalName := params["principalName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdatePrincipal(ctx, principalName, map[string]interface{}{
 		"entityVersion": entityVersion,
@@ -344,10 +349,10 @@ func createUpdateGetPrincipalWorker(ctx context.Context, w *Worker, params map[s
 	w.Log(resp, err)
 }
 
-func createUpdateGetSchemaWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
+func updateGetSchemaWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateSchema(ctx, catalogName, schemaName, map[string]interface{}{
 		"entityVersion": entityVersion,
@@ -360,11 +365,11 @@ func createUpdateGetSchemaWorker(ctx context.Context, w *Worker, params map[stri
 	w.Log(resp, err)
 }
 
-func createUpdateGetTableWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
+func updateGetTableWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
 	tableName := params["tableName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 	resp, err := w.Catalog.UpdateTable(ctx, catalogName, schemaName, tableName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
@@ -376,11 +381,11 @@ func createUpdateGetTableWorker(ctx context.Context, w *Worker, params map[strin
 	w.Log(resp, err)
 }
 
-func createUpdateGetViewWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
+func updateGetViewWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
 	viewName := params["viewName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 	resp, err := w.Catalog.UpdateView(ctx, catalogName, schemaName, viewName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
@@ -392,11 +397,11 @@ func createUpdateGetViewWorker(ctx context.Context, w *Worker, params map[string
 	w.Log(resp, err)
 }
 
-func createUpdateGetModelWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
+func updateGetModelWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
 	modelName := params["modelName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 	resp, err := w.Catalog.UpdateModel(ctx, catalogName, schemaName, modelName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
@@ -408,11 +413,11 @@ func createUpdateGetModelWorker(ctx context.Context, w *Worker, params map[strin
 	w.Log(resp, err)
 }
 
-func createUpdateGetVolumeWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
+func updateGetVolumeWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
 	catalogName := params["catalogName"].(string)
 	schemaName := params["schemaName"].(string)
 	volumeName := params["volumeName"].(string)
-	entityVersion := 1
+	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateVolume(ctx, catalogName, schemaName, volumeName, map[string]interface{}{
 		"entityVersion": entityVersion,
