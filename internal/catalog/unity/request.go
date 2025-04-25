@@ -521,10 +521,10 @@ func (c *Catalog) ListModels(ctx context.Context, catalogName string, schemaName
 }
 
 func (c *Catalog) UpdateModel(ctx context.Context, catalogName string, schemaName string, modelName string, params map[string]interface{}) (*http.Response, error) {
-	comment := params["comment"].(string)
+	entityVersion := params["entityVersion"].(int)
 
 	body := UpdateModelBody{
-		Comment: comment,
+		Comment: strconv.Itoa(entityVersion),
 	}
 
 	jsonBody, _ := json.Marshal(body)
@@ -555,9 +555,9 @@ func (c *Catalog) CreateVolume(ctx context.Context, catalogName string, schemaNa
 }
 
 func (c *Catalog) UpdateVolume(ctx context.Context, catalogName string, schemaName string, volumeName string, params map[string]interface{}) (*http.Response, error) {
-	comment := params["comment"].(string)
+	entityVersion := params["entityVersion"].(int)
 	body := UpdateVolumeBody{
-		Comment: comment,
+		Comment: strconv.Itoa(entityVersion),
 	}
 
 	jsonBody, _ := json.Marshal(body)

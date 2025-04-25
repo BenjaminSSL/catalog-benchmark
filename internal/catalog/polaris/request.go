@@ -124,12 +124,10 @@ func (c *Catalog) GetTable(ctx context.Context, catalogName string, schemaName s
 func (c *Catalog) UpdateCatalog(ctx context.Context, name string, params map[string]interface{}) (*http.Response, error) {
 	entityVersion := params["entityVersion"].(int)
 
-	var catalogProperties = CatalogProperties{}
-	properties, ok := params["properties"].(map[string]string)
-	if ok {
-		catalogProperties = CatalogProperties{
-			AdditionalProps: properties,
-		}
+	var catalogProperties = CatalogProperties{
+		AdditionalProps: map[string]string{
+			"entityVersion": strconv.Itoa(entityVersion),
+		},
 	}
 
 	body := UpdateCatalogBody{
@@ -155,13 +153,11 @@ func (c *Catalog) UpdateCatalog(ctx context.Context, name string, params map[str
 func (c *Catalog) UpdatePrincipal(ctx context.Context, name string, params map[string]interface{}) (*http.Response, error) {
 	entityVersion := params["entityVersion"].(int)
 
-	properties, ok := params["properties"].(map[string]string)
-	if !ok {
-		properties = make(map[string]string)
-	}
 	body := UpdatePrincipalBody{
 		CurrentEntityVersion: entityVersion,
-		Properties:           properties,
+		Properties: map[string]string{
+			"entityVersion": strconv.Itoa(entityVersion),
+		},
 	}
 
 	jsonBody, err := common.MarshalJSON(body)
@@ -177,13 +173,12 @@ func (c *Catalog) UpdatePrincipal(ctx context.Context, name string, params map[s
 }
 
 func (c *Catalog) UpdateSchema(ctx context.Context, catalogName string, schemaName string, params map[string]interface{}) (*http.Response, error) {
-	properties, ok := params["properties"].(map[string]string)
-	if !ok {
-		properties = make(map[string]string)
-	}
+	entityVersion := params["entityVersion"].(int)
 
 	body := UpdateNamespaceBody{
-		Updates: properties,
+		Updates: map[string]string{
+			"entityVersion": strconv.Itoa(entityVersion),
+		},
 	}
 
 	jsonBody, err := common.MarshalJSON(body)
@@ -198,15 +193,14 @@ func (c *Catalog) UpdateSchema(ctx context.Context, catalogName string, schemaNa
 }
 
 func (c *Catalog) UpdateTable(ctx context.Context, catalogName string, schemaName string, tableName string, params map[string]interface{}) (*http.Response, error) {
-	properties, ok := params["properties"].(map[string]string)
-	if !ok {
-		properties = make(map[string]string)
-	}
+	entityVersion := params["entityVersion"].(int)
 	body := UpdateTableBody{
 		Updates: []map[string]interface{}{
 			{
-				"action":  "set-properties",
-				"updates": properties,
+				"action": "set-properties",
+				"updates": map[string]string{
+					"entityVersion": strconv.Itoa(entityVersion),
+				},
 			},
 		},
 	}

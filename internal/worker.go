@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 )
 
 type WorkerFunc func(ctx context.Context, w *Worker, params map[string]interface{})
@@ -267,8 +266,8 @@ func updateSchemaWorker(ctx context.Context, w *Worker, params map[string]interf
 	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateSchema(ctx, catalogName, schemaName, map[string]interface{}{
-		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
-	})
+		"entityVersion": entityVersion},
+	)
 	w.Log(resp, err)
 }
 func updateTableWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
@@ -278,8 +277,8 @@ func updateTableWorker(ctx context.Context, w *Worker, params map[string]interfa
 	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateTable(ctx, catalogName, schemaName, tableName, map[string]interface{}{
-		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
-	})
+		"entityVersion": entityVersion},
+	)
 	w.Log(resp, err)
 }
 
@@ -290,8 +289,8 @@ func updateViewWorker(ctx context.Context, w *Worker, params map[string]interfac
 	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateView(ctx, catalogName, schemaName, viewName, map[string]interface{}{
-		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
-	})
+		"entityVersion": entityVersion},
+	)
 	w.Log(resp, err)
 }
 
@@ -302,8 +301,8 @@ func updateModelWorker(ctx context.Context, w *Worker, params map[string]interfa
 	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateModel(ctx, catalogName, schemaName, modelName, map[string]interface{}{
-		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
-	})
+		"entityVersion": entityVersion},
+	)
 	w.Log(resp, err)
 }
 
@@ -314,8 +313,8 @@ func updateVolumeWorker(ctx context.Context, w *Worker, params map[string]interf
 	entityVersion := params["entityVersion"].(int)
 
 	resp, err := w.Catalog.UpdateVolume(ctx, catalogName, schemaName, volumeName, map[string]interface{}{
-		"properties": map[string]string{"entityVersion": strconv.Itoa(entityVersion)},
-	})
+		"entityVersion": entityVersion},
+	)
 	w.Log(resp, err)
 }
 
