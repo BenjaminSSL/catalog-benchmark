@@ -10,13 +10,27 @@ import (
 	"net/url"
 )
 
-type WorkerFunc func(ctx context.Context, w *Worker, params map[string]interface{})
+type WorkerFunc func(w *Worker)
 type Worker struct {
 	Func    WorkerFunc
 	Client  *http.Client
 	Logger  *common.RoutineBatchLogger
 	Catalog Catalog
 	Step    int
+	Params  map[string]interface{}
+	Ctx     context.Context
+}
+
+func NewWorker(client *http.Client, catalog Catalog, logger *common.RoutineBatchLogger, params map[string]interface{}, workerFunc WorkerFunc) *Worker {
+	return &Worker{
+		Client:  client,
+		Catalog: catalog,
+		Logger:  logger,
+		Step:    0,
+		Params:  params,
+		Ctx:     context.Background(),
+		Func:    workerFunc,
+	}
 }
 
 func (w *Worker) Log(resp *http.Response, err error) {
@@ -56,381 +70,382 @@ func (w *Worker) IncrementStep() {
 	w.Step++
 }
 
-func (w *Worker) Run(ctx context.Context, params map[string]interface{}) {
+func (w *Worker) Run(ctx context.Context) {
+	w.Ctx = ctx
 	// EntityVersion counter for update operations
 	entityVersion := 1
-	params["entityVersion"] = entityVersion
+	w.Params["entityVersion"] = entityVersion
 	for ctx.Err() == nil {
-		w.Func(ctx, w, params)
+		w.Func(w)
 		w.Step++
 		entityVersion++
-		params["entityVersion"] = entityVersion
+		w.Params["entityVersion"] = entityVersion
 	}
 }
 
-func createCatalogWorker(ctx context.Context, w *Worker, _ map[string]interface{}) {
+func createCatalogWorker(w *Worker) {
 	catalogName := uuid.NewString()
-	resp, err := w.Catalog.CreateCatalog(ctx, catalogName)
+	resp, err := w.Catalog.CreateCatalog(w.Ctx, catalogName)
 	w.Log(resp, err)
 }
 
-func createPrincipalWorker(ctx context.Context, w *Worker, _ map[string]interface{}) {
+func createPrincipalWorker(w *Worker) {
 	catalogName := uuid.NewString()
-	resp, err := w.Catalog.CreatePrincipal(ctx, catalogName)
+	resp, err := w.Catalog.CreatePrincipal(w.Ctx, catalogName)
 	w.Log(resp, err)
 }
 
-func createSchemaWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
+func createSchemaWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
 	schemaName := uuid.NewString()
-	resp, err := w.Catalog.CreateSchema(ctx, catalogName, schemaName)
+	resp, err := w.Catalog.CreateSchema(w.Ctx, catalogName, schemaName)
 	w.Log(resp, err)
 }
 
-func createTableWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createTableWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
 	tableName := uuid.NewString()
-	resp, err := w.Catalog.CreateTable(ctx, catalogName, schemaName, tableName)
+	resp, err := w.Catalog.CreateTable(w.Ctx, catalogName, schemaName, tableName)
 	w.Log(resp, err)
 }
 
-func createViewWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createViewWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
 	viewName := uuid.NewString()
-	resp, err := w.Catalog.CreateView(ctx, catalogName, schemaName, viewName)
+	resp, err := w.Catalog.CreateView(w.Ctx, catalogName, schemaName, viewName)
 	w.Log(resp, err)
 }
 
-func createFunctionWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createFunctionWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
 	functionName := uuid.NewString()
-	resp, err := w.Catalog.CreateFunction(ctx, catalogName, schemaName, functionName)
+	resp, err := w.Catalog.CreateFunction(w.Ctx, catalogName, schemaName, functionName)
 	w.Log(resp, err)
 }
 
-func createModelWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createModelWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
 	modelName := uuid.NewString()
-	resp, err := w.Catalog.CreateModel(ctx, catalogName, schemaName, modelName)
+	resp, err := w.Catalog.CreateModel(w.Ctx, catalogName, schemaName, modelName)
 	w.Log(resp, err)
 }
 
-func createVolumeWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createVolumeWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
 	volumeName := uuid.NewString()
-	resp, err := w.Catalog.CreateVolume(ctx, catalogName, schemaName, volumeName)
+	resp, err := w.Catalog.CreateVolume(w.Ctx, catalogName, schemaName, volumeName)
 	w.Log(resp, err)
 
 }
 
-func createDeleteCatalogWorker(ctx context.Context, w *Worker, _ map[string]interface{}) {
+func createDeleteCatalogWorker(w *Worker) {
 
 	catalogName := uuid.NewString()
 
-	resp, err := w.Catalog.CreateCatalog(ctx, catalogName)
+	resp, err := w.Catalog.CreateCatalog(w.Ctx, catalogName)
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.DeleteCatalog(ctx, catalogName)
+	resp, err = w.Catalog.DeleteCatalog(w.Ctx, catalogName)
 	w.Log(resp, err)
 }
 
-func createDeletePrincipalWorker(ctx context.Context, w *Worker, _ map[string]interface{}) {
+func createDeletePrincipalWorker(w *Worker) {
 	principalName := uuid.NewString()
-	resp, err := w.Catalog.CreatePrincipal(ctx, principalName)
+	resp, err := w.Catalog.CreatePrincipal(w.Ctx, principalName)
 	w.Log(resp, err)
 
-	resp, err = w.Catalog.DeletePrincipal(ctx, principalName)
+	resp, err = w.Catalog.DeletePrincipal(w.Ctx, principalName)
 	w.Log(resp, err)
 }
 
-func createDeleteSchemaWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
+func createDeleteSchemaWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
 
 	schemaName := uuid.NewString()
 
-	resp, err := w.Catalog.CreateSchema(ctx, catalogName, schemaName)
+	resp, err := w.Catalog.CreateSchema(w.Ctx, catalogName, schemaName)
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.DeleteSchema(ctx, catalogName, schemaName)
+	resp, err = w.Catalog.DeleteSchema(w.Ctx, catalogName, schemaName)
 	w.Log(resp, err)
 }
 
-func createDeleteTableWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createDeleteTableWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
 	tableName := uuid.NewString()
-	resp, err := w.Catalog.CreateTable(ctx, catalogName, schemaName, tableName)
+	resp, err := w.Catalog.CreateTable(w.Ctx, catalogName, schemaName, tableName)
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.DeleteTable(ctx, catalogName, schemaName, tableName)
+	resp, err = w.Catalog.DeleteTable(w.Ctx, catalogName, schemaName, tableName)
 	w.Log(resp, err)
 }
 
-func createDeleteViewWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createDeleteViewWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 	viewName := uuid.NewString()
 
-	resp, err := w.Catalog.CreateView(ctx, catalogName, schemaName, viewName)
+	resp, err := w.Catalog.CreateView(w.Ctx, catalogName, schemaName, viewName)
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.DeleteView(ctx, catalogName, schemaName, viewName)
+	resp, err = w.Catalog.DeleteView(w.Ctx, catalogName, schemaName, viewName)
 	w.Log(resp, err)
 }
 
-func createDeleteFunctionWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createDeleteFunctionWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 	functionName := uuid.NewString()
 
-	resp, err := w.Catalog.CreateFunction(ctx, catalogName, schemaName, functionName)
+	resp, err := w.Catalog.CreateFunction(w.Ctx, catalogName, schemaName, functionName)
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.DeleteFunction(ctx, catalogName, schemaName, functionName)
+	resp, err = w.Catalog.DeleteFunction(w.Ctx, catalogName, schemaName, functionName)
 	w.Log(resp, err)
 }
 
-func createDeleteModelWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createDeleteModelWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 	modelName := uuid.NewString()
 
-	resp, err := w.Catalog.CreateModel(ctx, catalogName, schemaName, modelName)
+	resp, err := w.Catalog.CreateModel(w.Ctx, catalogName, schemaName, modelName)
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.DeleteModel(ctx, catalogName, schemaName, modelName)
+	resp, err = w.Catalog.DeleteModel(w.Ctx, catalogName, schemaName, modelName)
 	w.Log(resp, err)
 }
 
-func createDeleteVolumeWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func createDeleteVolumeWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 	volumeName := uuid.NewString()
 
-	resp, err := w.Catalog.CreateVolume(ctx, catalogName, schemaName, volumeName)
+	resp, err := w.Catalog.CreateVolume(w.Ctx, catalogName, schemaName, volumeName)
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.DeleteVolume(ctx, catalogName, schemaName, volumeName)
+	resp, err = w.Catalog.DeleteVolume(w.Ctx, catalogName, schemaName, volumeName)
 	w.Log(resp, err)
 }
 
-func updateCatalogWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateCatalogWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdateCatalog(ctx, catalogName, map[string]interface{}{
+	resp, err := w.Catalog.UpdateCatalog(w.Ctx, catalogName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
 	w.Log(resp, err)
 
 }
 
-func updatePrincipalWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	principalName := params["principalName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updatePrincipalWorker(w *Worker) {
+	principalName := w.Params["principalName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdatePrincipal(ctx, principalName, map[string]interface{}{
+	resp, err := w.Catalog.UpdatePrincipal(w.Ctx, principalName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
 	w.Log(resp, err)
 }
 
-func updateSchemaWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateSchemaWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdateSchema(ctx, catalogName, schemaName, map[string]interface{}{
+	resp, err := w.Catalog.UpdateSchema(w.Ctx, catalogName, schemaName, map[string]interface{}{
 		"entityVersion": entityVersion},
 	)
 	w.Log(resp, err)
 }
-func updateTableWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	tableName := params["tableName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateTableWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	tableName := w.Params["tableName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdateTable(ctx, catalogName, schemaName, tableName, map[string]interface{}{
-		"entityVersion": entityVersion},
-	)
-	w.Log(resp, err)
-}
-
-func updateViewWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	viewName := params["viewName"].(string)
-	entityVersion := params["entityVersion"].(int)
-
-	resp, err := w.Catalog.UpdateView(ctx, catalogName, schemaName, viewName, map[string]interface{}{
+	resp, err := w.Catalog.UpdateTable(w.Ctx, catalogName, schemaName, tableName, map[string]interface{}{
 		"entityVersion": entityVersion},
 	)
 	w.Log(resp, err)
 }
 
-func updateModelWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	modelName := params["modelName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateViewWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	viewName := w.Params["viewName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdateModel(ctx, catalogName, schemaName, modelName, map[string]interface{}{
+	resp, err := w.Catalog.UpdateView(w.Ctx, catalogName, schemaName, viewName, map[string]interface{}{
 		"entityVersion": entityVersion},
 	)
 	w.Log(resp, err)
 }
 
-func updateVolumeWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	volumeName := params["volumeName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateModelWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	modelName := w.Params["modelName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdateVolume(ctx, catalogName, schemaName, volumeName, map[string]interface{}{
+	resp, err := w.Catalog.UpdateModel(w.Ctx, catalogName, schemaName, modelName, map[string]interface{}{
 		"entityVersion": entityVersion},
 	)
 	w.Log(resp, err)
 }
 
-func updateGetCatalogWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateVolumeWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	volumeName := w.Params["volumeName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdateCatalog(ctx, catalogName, map[string]interface{}{
-		"entityVersion": entityVersion,
-	})
-	w.Log(resp, err)
-
-	w.IncrementStep()
-
-	resp, err = w.Catalog.GetCatalog(ctx, catalogName)
+	resp, err := w.Catalog.UpdateVolume(w.Ctx, catalogName, schemaName, volumeName, map[string]interface{}{
+		"entityVersion": entityVersion},
+	)
 	w.Log(resp, err)
 }
 
-func updateGetPrincipalWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	principalName := params["principalName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateGetCatalogWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdatePrincipal(ctx, principalName, map[string]interface{}{
+	resp, err := w.Catalog.UpdateCatalog(w.Ctx, catalogName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.GetPrincipal(ctx, principalName)
+	resp, err = w.Catalog.GetCatalog(w.Ctx, catalogName)
 	w.Log(resp, err)
 }
 
-func updateGetSchemaWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateGetPrincipalWorker(w *Worker) {
+	principalName := w.Params["principalName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdateSchema(ctx, catalogName, schemaName, map[string]interface{}{
+	resp, err := w.Catalog.UpdatePrincipal(w.Ctx, principalName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
 	w.Log(resp, err)
 
 	w.IncrementStep()
 
-	resp, err = w.Catalog.GetSchema(ctx, catalogName, schemaName)
+	resp, err = w.Catalog.GetPrincipal(w.Ctx, principalName)
 	w.Log(resp, err)
 }
 
-func updateGetTableWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	tableName := params["tableName"].(string)
-	entityVersion := params["entityVersion"].(int)
-	resp, err := w.Catalog.UpdateTable(ctx, catalogName, schemaName, tableName, map[string]interface{}{
+func updateGetSchemaWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
+
+	resp, err := w.Catalog.UpdateSchema(w.Ctx, catalogName, schemaName, map[string]interface{}{
+		"entityVersion": entityVersion,
+	})
+	w.Log(resp, err)
+
+	w.IncrementStep()
+
+	resp, err = w.Catalog.GetSchema(w.Ctx, catalogName, schemaName)
+	w.Log(resp, err)
+}
+
+func updateGetTableWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	tableName := w.Params["tableName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
+	resp, err := w.Catalog.UpdateTable(w.Ctx, catalogName, schemaName, tableName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
 	w.Log(resp, err)
 
 	entityVersion++
 
-	resp, err = w.Catalog.GetTable(ctx, catalogName, schemaName, tableName)
+	resp, err = w.Catalog.GetTable(w.Ctx, catalogName, schemaName, tableName)
 	w.Log(resp, err)
 }
 
-func updateGetViewWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	viewName := params["viewName"].(string)
-	entityVersion := params["entityVersion"].(int)
-	resp, err := w.Catalog.UpdateView(ctx, catalogName, schemaName, viewName, map[string]interface{}{
+func updateGetViewWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	viewName := w.Params["viewName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
+	resp, err := w.Catalog.UpdateView(w.Ctx, catalogName, schemaName, viewName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
 	w.Log(resp, err)
 
 	entityVersion++
 
-	resp, err = w.Catalog.GetView(ctx, catalogName, schemaName, viewName)
+	resp, err = w.Catalog.GetView(w.Ctx, catalogName, schemaName, viewName)
 	w.Log(resp, err)
 }
 
-func updateGetModelWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	modelName := params["modelName"].(string)
-	entityVersion := params["entityVersion"].(int)
-	resp, err := w.Catalog.UpdateModel(ctx, catalogName, schemaName, modelName, map[string]interface{}{
+func updateGetModelWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	modelName := w.Params["modelName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
+	resp, err := w.Catalog.UpdateModel(w.Ctx, catalogName, schemaName, modelName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
 	w.Log(resp, err)
 
 	entityVersion++
 
-	resp, err = w.Catalog.GetModel(ctx, catalogName, schemaName, modelName)
+	resp, err = w.Catalog.GetModel(w.Ctx, catalogName, schemaName, modelName)
 	w.Log(resp, err)
 }
 
-func updateGetVolumeWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	volumeName := params["volumeName"].(string)
-	entityVersion := params["entityVersion"].(int)
+func updateGetVolumeWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	volumeName := w.Params["volumeName"].(string)
+	entityVersion := w.Params["entityVersion"].(int)
 
-	resp, err := w.Catalog.UpdateVolume(ctx, catalogName, schemaName, volumeName, map[string]interface{}{
+	resp, err := w.Catalog.UpdateVolume(w.Ctx, catalogName, schemaName, volumeName, map[string]interface{}{
 		"entityVersion": entityVersion,
 	})
 	w.Log(resp, err)
 
 	entityVersion++
 
-	resp, err = w.Catalog.GetVolume(ctx, catalogName, schemaName, volumeName)
+	resp, err = w.Catalog.GetVolume(w.Ctx, catalogName, schemaName, volumeName)
 	w.Log(resp, err)
 }
 
-func listCatalogsWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	responses, err := w.Catalog.ListCatalogs(ctx, params)
+func listCatalogsWorker(w *Worker) {
+	responses, err := w.Catalog.ListCatalogs(w.Ctx, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
 		return
@@ -439,8 +454,8 @@ func listCatalogsWorker(ctx context.Context, w *Worker, params map[string]interf
 	w.Log(resp, err)
 }
 
-func listPrincipalsWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	responses, err := w.Catalog.ListPrincipals(ctx, params)
+func listPrincipalsWorker(w *Worker) {
+	responses, err := w.Catalog.ListPrincipals(w.Ctx, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
 		return
@@ -449,9 +464,9 @@ func listPrincipalsWorker(ctx context.Context, w *Worker, params map[string]inte
 	w.Log(resp, err)
 }
 
-func listSchemasWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	responses, err := w.Catalog.ListSchemas(ctx, catalogName, params)
+func listSchemasWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	responses, err := w.Catalog.ListSchemas(w.Ctx, catalogName, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
 		return
@@ -460,10 +475,10 @@ func listSchemasWorker(ctx context.Context, w *Worker, params map[string]interfa
 	w.Log(resp, err)
 }
 
-func listTablesWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
-	responses, err := w.Catalog.ListTables(ctx, catalogName, schemaName, params)
+func listTablesWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
+	responses, err := w.Catalog.ListTables(w.Ctx, catalogName, schemaName, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
 		return
@@ -472,11 +487,11 @@ func listTablesWorker(ctx context.Context, w *Worker, params map[string]interfac
 	w.Log(resp, err)
 }
 
-func listViewsWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func listViewsWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
-	responses, err := w.Catalog.ListViews(ctx, catalogName, schemaName, params)
+	responses, err := w.Catalog.ListViews(w.Ctx, catalogName, schemaName, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
 		return
@@ -485,11 +500,11 @@ func listViewsWorker(ctx context.Context, w *Worker, params map[string]interface
 	w.Log(resp, err)
 }
 
-func listFunctionsWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func listFunctionsWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
-	responses, err := w.Catalog.ListFunctions(ctx, catalogName, schemaName, params)
+	responses, err := w.Catalog.ListFunctions(w.Ctx, catalogName, schemaName, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
 		return
@@ -497,11 +512,11 @@ func listFunctionsWorker(ctx context.Context, w *Worker, params map[string]inter
 	resp := responses[len(responses)-1]
 	w.Log(resp, err)
 }
-func listModelsWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func listModelsWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
-	responses, err := w.Catalog.ListModels(ctx, catalogName, schemaName, params)
+	responses, err := w.Catalog.ListModels(w.Ctx, catalogName, schemaName, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
 		return
@@ -510,11 +525,11 @@ func listModelsWorker(ctx context.Context, w *Worker, params map[string]interfac
 	w.Log(resp, err)
 }
 
-func listVolumesWorker(ctx context.Context, w *Worker, params map[string]interface{}) {
-	catalogName := params["catalogName"].(string)
-	schemaName := params["schemaName"].(string)
+func listVolumesWorker(w *Worker) {
+	catalogName := w.Params["catalogName"].(string)
+	schemaName := w.Params["schemaName"].(string)
 
-	responses, err := w.Catalog.ListVolumes(ctx, catalogName, schemaName, params)
+	responses, err := w.Catalog.ListVolumes(w.Ctx, catalogName, schemaName, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
 		return
