@@ -22,12 +22,17 @@ type Worker struct {
 }
 
 func NewWorker(client *http.Client, catalog Catalog, logger *common.RoutineBatchLogger, params map[string]interface{}, workerFunc WorkerFunc) *Worker {
+	// Ensures the params map is not modified outside of the worker
+	paramsCopy := make(map[string]interface{})
+	for k, v := range params {
+		paramsCopy[k] = v
+	}
 	return &Worker{
 		Client:  client,
 		Catalog: catalog,
 		Logger:  logger,
 		Step:    0,
-		Params:  params,
+		Params:  paramsCopy,
 		Ctx:     context.Background(),
 		Func:    workerFunc,
 	}

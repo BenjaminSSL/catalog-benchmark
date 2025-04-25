@@ -60,20 +60,10 @@ func (e *BenchmarkEngine) RunBenchmark(ctx context.Context, workers []WorkerConf
 				logger, _ := common.NewRoutineBatchLogger("./output/logs/tmp", e.ExperimentID, threadID, 20)
 				defer logger.Close()
 
-				w := &Worker{
-					Func:    config.workerFunc,
-					Client:  e.client,
-					Logger:  logger,
-					Catalog: e.Catalog, // or config.catalog if it varies per worker
-					Step:    1,
-				}
+				w := NewWorker(
+					e.client, e.Catalog, logger, config.params, config.workerFunc)
 
-				paramsCopy := make(map[string]interface{})
-				for k, v := range config.params {
-					paramsCopy[k] = v
-				}
-
-				w.Run(ctx, paramsCopy)
+				w.Run(ctx)
 
 			}(threadID, worker)
 
