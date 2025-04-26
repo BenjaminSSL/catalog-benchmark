@@ -22,7 +22,7 @@ type Worker struct {
 }
 
 func NewWorker(client *http.Client, catalog Catalog, logger *common.RoutineBatchLogger, params map[string]interface{}, workerFunc WorkerFunc) *Worker {
-	// Ensures the params map is not modified outside of the worker
+	// Ensures the Params map is not modified outside of the worker
 	paramsCopy := make(map[string]interface{})
 	for k, v := range params {
 		paramsCopy[k] = v
@@ -88,26 +88,26 @@ func (w *Worker) Run(ctx context.Context) {
 	}
 }
 
-func createCatalogWorker(w *Worker) {
+func CreateCatalogWorker(w *Worker) {
 	catalogName := uuid.NewString()
 	resp, err := w.Catalog.CreateCatalog(w.Ctx, catalogName)
 	w.Log(resp, err)
 }
 
-func createPrincipalWorker(w *Worker) {
+func CreatePrincipalWorker(w *Worker) {
 	catalogName := uuid.NewString()
 	resp, err := w.Catalog.CreatePrincipal(w.Ctx, catalogName)
 	w.Log(resp, err)
 }
 
-func createSchemaWorker(w *Worker) {
+func CreateSchemaWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := uuid.NewString()
 	resp, err := w.Catalog.CreateSchema(w.Ctx, catalogName, schemaName)
 	w.Log(resp, err)
 }
 
-func createTableWorker(w *Worker) {
+func CreateTableWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -116,7 +116,7 @@ func createTableWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createViewWorker(w *Worker) {
+func CreateViewWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -125,7 +125,7 @@ func createViewWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createFunctionWorker(w *Worker) {
+func CreateFunctionWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -134,7 +134,7 @@ func createFunctionWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createModelWorker(w *Worker) {
+func CreateModelWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -143,7 +143,7 @@ func createModelWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createVolumeWorker(w *Worker) {
+func CreateVolumeWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -153,7 +153,7 @@ func createVolumeWorker(w *Worker) {
 
 }
 
-func createDeleteCatalogWorker(w *Worker) {
+func CreateDeleteCatalogWorker(w *Worker) {
 
 	catalogName := uuid.NewString()
 
@@ -166,7 +166,7 @@ func createDeleteCatalogWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createDeletePrincipalWorker(w *Worker) {
+func CreateDeletePrincipalWorker(w *Worker) {
 	principalName := uuid.NewString()
 	resp, err := w.Catalog.CreatePrincipal(w.Ctx, principalName)
 	w.Log(resp, err)
@@ -175,7 +175,7 @@ func createDeletePrincipalWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createDeleteSchemaWorker(w *Worker) {
+func CreateDeleteSchemaWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 
 	schemaName := uuid.NewString()
@@ -189,7 +189,7 @@ func createDeleteSchemaWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createDeleteTableWorker(w *Worker) {
+func CreateDeleteTableWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -203,7 +203,7 @@ func createDeleteTableWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createDeleteViewWorker(w *Worker) {
+func CreateDeleteViewWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	viewName := uuid.NewString()
@@ -217,7 +217,7 @@ func createDeleteViewWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createDeleteFunctionWorker(w *Worker) {
+func CreateDeleteFunctionWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	functionName := uuid.NewString()
@@ -231,7 +231,7 @@ func createDeleteFunctionWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createDeleteModelWorker(w *Worker) {
+func CreateDeleteModelWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	modelName := uuid.NewString()
@@ -245,7 +245,7 @@ func createDeleteModelWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func createDeleteVolumeWorker(w *Worker) {
+func CreateDeleteVolumeWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	volumeName := uuid.NewString()
@@ -259,7 +259,7 @@ func createDeleteVolumeWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateCatalogWorker(w *Worker) {
+func UpdateCatalogWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	entityVersion := w.Params["entityVersion"].(int)
 
@@ -270,7 +270,7 @@ func updateCatalogWorker(w *Worker) {
 
 }
 
-func updatePrincipalWorker(w *Worker) {
+func UpdatePrincipalWorker(w *Worker) {
 	principalName := w.Params["principalName"].(string)
 	entityVersion := w.Params["entityVersion"].(int)
 
@@ -280,7 +280,7 @@ func updatePrincipalWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateSchemaWorker(w *Worker) {
+func UpdateSchemaWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	entityVersion := w.Params["entityVersion"].(int)
@@ -290,7 +290,7 @@ func updateSchemaWorker(w *Worker) {
 	)
 	w.Log(resp, err)
 }
-func updateTableWorker(w *Worker) {
+func UpdateTableWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	tableName := w.Params["tableName"].(string)
@@ -302,7 +302,7 @@ func updateTableWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateViewWorker(w *Worker) {
+func UpdateViewWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	viewName := w.Params["viewName"].(string)
@@ -314,7 +314,7 @@ func updateViewWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateModelWorker(w *Worker) {
+func UpdateModelWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	modelName := w.Params["modelName"].(string)
@@ -326,7 +326,7 @@ func updateModelWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateVolumeWorker(w *Worker) {
+func UpdateVolumeWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	volumeName := w.Params["volumeName"].(string)
@@ -338,7 +338,7 @@ func updateVolumeWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateGetCatalogWorker(w *Worker) {
+func UpdateGetCatalogWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	entityVersion := w.Params["entityVersion"].(int)
 
@@ -353,7 +353,7 @@ func updateGetCatalogWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateGetPrincipalWorker(w *Worker) {
+func UpdateGetPrincipalWorker(w *Worker) {
 	principalName := w.Params["principalName"].(string)
 	entityVersion := w.Params["entityVersion"].(int)
 
@@ -368,7 +368,7 @@ func updateGetPrincipalWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateGetSchemaWorker(w *Worker) {
+func UpdateGetSchemaWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	entityVersion := w.Params["entityVersion"].(int)
@@ -384,7 +384,7 @@ func updateGetSchemaWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateGetTableWorker(w *Worker) {
+func UpdateGetTableWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	tableName := w.Params["tableName"].(string)
@@ -400,7 +400,7 @@ func updateGetTableWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateGetViewWorker(w *Worker) {
+func UpdateGetViewWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	viewName := w.Params["viewName"].(string)
@@ -416,7 +416,7 @@ func updateGetViewWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateGetModelWorker(w *Worker) {
+func UpdateGetModelWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	modelName := w.Params["modelName"].(string)
@@ -432,7 +432,7 @@ func updateGetModelWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func updateGetVolumeWorker(w *Worker) {
+func UpdateGetVolumeWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	volumeName := w.Params["volumeName"].(string)
@@ -449,7 +449,7 @@ func updateGetVolumeWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func listCatalogsWorker(w *Worker) {
+func ListCatalogsWorker(w *Worker) {
 	responses, err := w.Catalog.ListCatalogs(w.Ctx, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
@@ -459,7 +459,7 @@ func listCatalogsWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func listPrincipalsWorker(w *Worker) {
+func ListPrincipalsWorker(w *Worker) {
 	responses, err := w.Catalog.ListPrincipals(w.Ctx, w.Params)
 	if len(responses) == 0 || err != nil {
 		w.Log(nil, err)
@@ -469,7 +469,7 @@ func listPrincipalsWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func listSchemasWorker(w *Worker) {
+func ListSchemasWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	responses, err := w.Catalog.ListSchemas(w.Ctx, catalogName, w.Params)
 	if len(responses) == 0 || err != nil {
@@ -480,7 +480,7 @@ func listSchemasWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func listTablesWorker(w *Worker) {
+func ListTablesWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	responses, err := w.Catalog.ListTables(w.Ctx, catalogName, schemaName, w.Params)
@@ -492,7 +492,7 @@ func listTablesWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func listViewsWorker(w *Worker) {
+func ListViewsWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -505,7 +505,7 @@ func listViewsWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func listFunctionsWorker(w *Worker) {
+func ListFunctionsWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -517,7 +517,7 @@ func listFunctionsWorker(w *Worker) {
 	resp := responses[len(responses)-1]
 	w.Log(resp, err)
 }
-func listModelsWorker(w *Worker) {
+func ListModelsWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 
@@ -530,7 +530,7 @@ func listModelsWorker(w *Worker) {
 	w.Log(resp, err)
 }
 
-func listVolumesWorker(w *Worker) {
+func ListVolumesWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 

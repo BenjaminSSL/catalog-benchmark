@@ -1,11 +1,12 @@
-package internal
+package setup
 
 import (
+	"benchmark/internal"
 	"context"
 	"github.com/google/uuid"
 )
 
-func grantPermissionCatalog(ctx context.Context, catalog Catalog, catalogName string) error {
+func grantPermissionCatalog(ctx context.Context, catalog internal.Catalog, catalogName string) error {
 	_, err := catalog.GrantPermissionCatalog(ctx, catalogName, map[string]interface{}{
 		"privilege": "TABLE_WRITE_DATA",
 	})
@@ -23,7 +24,7 @@ func grantPermissionCatalog(ctx context.Context, catalog Catalog, catalogName st
 	return nil
 }
 
-func createCatalog(ctx context.Context, catalog Catalog) (string, error) {
+func createCatalog(ctx context.Context, catalog internal.Catalog) (string, error) {
 	catalogName := uuid.NewString()
 
 	_, err := catalog.CreateCatalog(ctx, catalogName)
@@ -34,7 +35,7 @@ func createCatalog(ctx context.Context, catalog Catalog) (string, error) {
 	return catalogName, nil
 }
 
-func createSchema(ctx context.Context, catalog Catalog, catalogName string) (string, error) {
+func createSchema(ctx context.Context, catalog internal.Catalog, catalogName string) (string, error) {
 	schemaName := uuid.NewString()
 
 	_, err := catalog.CreateSchema(ctx, catalogName, schemaName)
@@ -45,140 +46,31 @@ func createSchema(ctx context.Context, catalog Catalog, catalogName string) (str
 	return schemaName, nil
 }
 
-func SetupCreateCatalog(threads int) ([]WorkerConfig, error) {
-	return []WorkerConfig{
-		{createCatalogWorker, threads, make(map[string]interface{})},
+func CreateCatalog(threads int) ([]internal.WorkerConfig, error) {
+	return []internal.WorkerConfig{
+		{internal.CreateCatalogWorker, threads, make(map[string]interface{})},
 	}, nil
 }
 
-func SetupCreatePrincipal(threads int) ([]WorkerConfig, error) {
+func CreatePrincipal(threads int) ([]internal.WorkerConfig, error) {
 
-	return []WorkerConfig{
-		{createPrincipalWorker, threads, make(map[string]interface{})},
+	return []internal.WorkerConfig{
+		{internal.CreatePrincipalWorker, threads, make(map[string]interface{})},
 	}, nil
 }
 
-func SetupCreateSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateSchema(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{createSchemaWorker, threads, map[string]interface{}{"catalogName": catalogName}},
+	return []internal.WorkerConfig{
+		{internal.CreateSchemaWorker, threads, map[string]interface{}{"catalogName": catalogName}},
 	}, nil
 }
 
-func SetupCreateTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	catalogName, err := createCatalog(ctx, catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	schemaName, err := createSchema(ctx, catalog, catalogName)
-	if err != nil {
-		return nil, err
-	}
-
-	err = grantPermissionCatalog(ctx, catalog, catalogName)
-
-	return []WorkerConfig{
-		{createTableWorker, threads, map[string]interface{}{
-			"catalogName": catalogName, "schemaName": schemaName}},
-	}, nil
-}
-
-func SetupCreateView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	catalogName, err := createCatalog(ctx, catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	schemaName, err := createSchema(ctx, catalog, catalogName)
-	if err != nil {
-		return nil, err
-	}
-
-	return []WorkerConfig{
-		{createViewWorker, threads, map[string]interface{}{
-			"catalogName": catalogName, "schemaName": schemaName}},
-	}, nil
-}
-
-func SetupCreateFunction(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	catalogName, err := createCatalog(ctx, catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	schemaName, err := createSchema(ctx, catalog, catalogName)
-	if err != nil {
-		return nil, err
-	}
-
-	return []WorkerConfig{
-		{createFunctionWorker, threads, map[string]interface{}{
-			"catalogName": catalogName, "schemaName": schemaName}},
-	}, nil
-}
-func SetupCreateModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	catalogName, err := createCatalog(ctx, catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	schemaName, err := createSchema(ctx, catalog, catalogName)
-	if err != nil {
-		return nil, err
-	}
-
-	return []WorkerConfig{
-		{createModelWorker, threads, map[string]interface{}{
-			"catalogName": catalogName, "schemaName": schemaName}},
-	}, nil
-}
-func SetupCreateVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	catalogName, err := createCatalog(ctx, catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	schemaName, err := createSchema(ctx, catalog, catalogName)
-	if err != nil {
-		return nil, err
-	}
-
-	return []WorkerConfig{
-		{createVolumeWorker, threads, map[string]interface{}{
-			"catalogName": catalogName, "schemaName": schemaName}},
-	}, nil
-}
-
-func SetupCreateDeleteCatalog(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	return []WorkerConfig{
-		{createDeleteCatalogWorker, threads, make(map[string]interface{})},
-	}, nil
-}
-
-func SetupCreateDeleteSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	catalogName, err := createCatalog(ctx, catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	return []WorkerConfig{
-		{createDeleteSchemaWorker, threads, map[string]interface{}{
-			"catalogName": catalogName}},
-	}, nil
-}
-
-func SetupCreateDeletePrincipal(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	return []WorkerConfig{
-		{createDeletePrincipalWorker, threads, make(map[string]interface{})},
-	}, nil
-}
-
-func SetupCreateDeleteTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateTable(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -191,13 +83,13 @@ func SetupCreateDeleteTable(ctx context.Context, catalog Catalog, threads int) (
 
 	err = grantPermissionCatalog(ctx, catalog, catalogName)
 
-	return []WorkerConfig{
-		{createDeleteTableWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.CreateTableWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
 
-func SetupCreateDeleteView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateView(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -208,13 +100,13 @@ func SetupCreateDeleteView(ctx context.Context, catalog Catalog, threads int) ([
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{createDeleteViewWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.CreateViewWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
 
-func SetupCreateDeleteFunction(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateFunction(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -225,13 +117,12 @@ func SetupCreateDeleteFunction(ctx context.Context, catalog Catalog, threads int
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{createFunctionWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.CreateFunctionWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
-
-func SetupCreateDeleteModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateModel(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -242,12 +133,12 @@ func SetupCreateDeleteModel(ctx context.Context, catalog Catalog, threads int) (
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{createDeleteModelWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.CreateModelWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
-func SetupCreateDeleteVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateVolume(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -258,38 +149,148 @@ func SetupCreateDeleteVolume(ctx context.Context, catalog Catalog, threads int) 
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{createDeleteVolumeWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.CreateVolumeWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
 
-func SetupUpdateCatalog(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateDeleteCatalog(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return []internal.WorkerConfig{
+		{internal.CreateDeleteCatalogWorker, threads, make(map[string]interface{})},
+	}, nil
+}
+
+func CreateDeleteSchema(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{updateCatalogWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.CreateDeleteSchemaWorker, threads, map[string]interface{}{
 			"catalogName": catalogName}},
 	}, nil
 }
 
-func SetupUpdatePrincipal(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateDeletePrincipal(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return []internal.WorkerConfig{
+		{internal.CreateDeletePrincipalWorker, threads, make(map[string]interface{})},
+	}, nil
+}
+
+func CreateDeleteTable(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
+	if err != nil {
+		return nil, err
+	}
+
+	schemaName, err := createSchema(ctx, catalog, catalogName)
+	if err != nil {
+		return nil, err
+	}
+
+	err = grantPermissionCatalog(ctx, catalog, catalogName)
+
+	return []internal.WorkerConfig{
+		{internal.CreateDeleteTableWorker, threads, map[string]interface{}{
+			"catalogName": catalogName, "schemaName": schemaName}},
+	}, nil
+}
+
+func CreateDeleteView(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
+	if err != nil {
+		return nil, err
+	}
+
+	schemaName, err := createSchema(ctx, catalog, catalogName)
+	if err != nil {
+		return nil, err
+	}
+
+	return []internal.WorkerConfig{
+		{internal.CreateDeleteViewWorker, threads, map[string]interface{}{
+			"catalogName": catalogName, "schemaName": schemaName}},
+	}, nil
+}
+
+func CreateDeleteFunction(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
+	if err != nil {
+		return nil, err
+	}
+
+	schemaName, err := createSchema(ctx, catalog, catalogName)
+	if err != nil {
+		return nil, err
+	}
+
+	return []internal.WorkerConfig{
+		{internal.CreateFunctionWorker, threads, map[string]interface{}{
+			"catalogName": catalogName, "schemaName": schemaName}},
+	}, nil
+}
+
+func CreateDeleteModel(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
+	if err != nil {
+		return nil, err
+	}
+
+	schemaName, err := createSchema(ctx, catalog, catalogName)
+	if err != nil {
+		return nil, err
+	}
+
+	return []internal.WorkerConfig{
+		{internal.CreateDeleteModelWorker, threads, map[string]interface{}{
+			"catalogName": catalogName, "schemaName": schemaName}},
+	}, nil
+}
+func CreateDeleteVolume(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
+	if err != nil {
+		return nil, err
+	}
+
+	schemaName, err := createSchema(ctx, catalog, catalogName)
+	if err != nil {
+		return nil, err
+	}
+
+	return []internal.WorkerConfig{
+		{internal.CreateDeleteVolumeWorker, threads, map[string]interface{}{
+			"catalogName": catalogName, "schemaName": schemaName}},
+	}, nil
+}
+
+func UpdateCatalog(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
+	if err != nil {
+		return nil, err
+	}
+
+	return []internal.WorkerConfig{
+		{internal.UpdateCatalogWorker, threads, map[string]interface{}{
+			"catalogName": catalogName}},
+	}, nil
+}
+
+func UpdatePrincipal(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	principalName := uuid.NewString()
 
 	_, err := catalog.CreatePrincipal(ctx, principalName)
 	if err != nil {
 		return nil, err
 	}
-	return []WorkerConfig{
-		{updatePrincipalWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.UpdatePrincipalWorker, threads, map[string]interface{}{
 			"principalName": principalName}},
 	}, nil
 }
 
-func SetupUpdateSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func UpdateSchema(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -300,13 +301,13 @@ func SetupUpdateSchema(ctx context.Context, catalog Catalog, threads int) ([]Wor
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{updateSchemaWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.UpdateSchemaWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
 
-func SetupUpdateTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func UpdateTable(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -325,14 +326,14 @@ func SetupUpdateTable(ctx context.Context, catalog Catalog, threads int) ([]Work
 	}
 
 	err = grantPermissionCatalog(ctx, catalog, catalogName)
-	return []WorkerConfig{
-		{updateTableWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.UpdateTableWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName, "tableName": tableName}},
 	}, nil
 
 }
 
-func SetupUpdateView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func UpdateView(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -349,13 +350,13 @@ func SetupUpdateView(ctx context.Context, catalog Catalog, threads int) ([]Worke
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{updateViewWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.UpdateViewWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName, "viewName": viewName}},
 	}, nil
 }
 
-func SetupUpdateModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func UpdateModel(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -371,12 +372,12 @@ func SetupUpdateModel(ctx context.Context, catalog Catalog, threads int) ([]Work
 	if err != nil {
 		return nil, err
 	}
-	return []WorkerConfig{
-		{updateModelWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.UpdateModelWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName, "modelName": modelName}},
 	}, nil
 }
-func SetupUpdateVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func UpdateVolume(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -392,39 +393,39 @@ func SetupUpdateVolume(ctx context.Context, catalog Catalog, threads int) ([]Wor
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{updateVolumeWorker, threads, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.UpdateVolumeWorker, threads, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName, "volumeName": volumeName}},
 	}, nil
 }
 
-func SetupCreateDeleteListSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateDeleteListSchema(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{listSchemasWorker, 1, map[string]interface{}{"catalogName": catalogName}},
-		{createDeleteSchemaWorker, threads - 1, map[string]interface{}{"catalogName": catalogName}},
+	return []internal.WorkerConfig{
+		{internal.ListSchemasWorker, 1, map[string]interface{}{"catalogName": catalogName}},
+		{internal.CreateDeleteSchemaWorker, threads - 1, map[string]interface{}{"catalogName": catalogName}},
 	}, nil
 }
 
-func SetupCreateDeleteListCatalog(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	return []WorkerConfig{
-		{listCatalogsWorker, 1, make(map[string]interface{})},
-		{createDeleteCatalogWorker, threads - 1, make(map[string]interface{})},
+func CreateDeleteListCatalog(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return []internal.WorkerConfig{
+		{internal.ListCatalogsWorker, 1, make(map[string]interface{})},
+		{internal.CreateDeleteCatalogWorker, threads - 1, make(map[string]interface{})},
 	}, nil
 }
 
-func SetupCreateDeleteListPrincipal(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	return []WorkerConfig{
-		{listPrincipalsWorker, 1, make(map[string]interface{})},
-		{createDeletePrincipalWorker, threads - 1, make(map[string]interface{})},
+func CreateDeleteListPrincipal(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	return []internal.WorkerConfig{
+		{internal.ListPrincipalsWorker, 1, make(map[string]interface{})},
+		{internal.CreateDeletePrincipalWorker, threads - 1, make(map[string]interface{})},
 	}, nil
 }
 
-func SetupCreateDeleteListTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateDeleteListTable(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -440,15 +441,15 @@ func SetupCreateDeleteListTable(ctx context.Context, catalog Catalog, threads in
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{listTablesWorker, 1, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.ListTablesWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteTableWorker, threads - 1, map[string]interface{}{
+		{internal.CreateDeleteTableWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
 
-func SetupCreateDeleteListView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateDeleteListView(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -459,14 +460,14 @@ func SetupCreateDeleteListView(ctx context.Context, catalog Catalog, threads int
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{listViewsWorker, 1, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.ListViewsWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteViewWorker, threads - 1, map[string]interface{}{
+		{internal.CreateDeleteViewWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
-func SetupCreateDeleteListFunction(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateDeleteListFunction(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -476,32 +477,14 @@ func SetupCreateDeleteListFunction(ctx context.Context, catalog Catalog, threads
 	if err != nil {
 		return nil, err
 	}
-	return []WorkerConfig{
-		{listFunctionsWorker, 1, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.ListFunctionsWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteFunctionWorker, threads - 1, map[string]interface{}{
-			"catalogName": catalogName, "schemaName": schemaName}},
-	}, nil
-}
-func SetupCreateDeleteListModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	catalogName, err := createCatalog(ctx, catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	schemaName, err := createSchema(ctx, catalog, catalogName)
-	if err != nil {
-		return nil, err
-	}
-
-	return []WorkerConfig{
-		{listModelsWorker, 1, map[string]interface{}{
-			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteModelWorker, threads - 1, map[string]interface{}{
+		{internal.CreateDeleteFunctionWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
-func SetupCreateDeleteListVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
+func CreateDeleteListModel(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -512,26 +495,44 @@ func SetupCreateDeleteListVolume(ctx context.Context, catalog Catalog, threads i
 		return nil, err
 	}
 
-	return []WorkerConfig{
-		{listVolumesWorker, 1, map[string]interface{}{
+	return []internal.WorkerConfig{
+		{internal.ListModelsWorker, 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
-		{createDeleteVolumeWorker, threads - 1, map[string]interface{}{
+		{internal.CreateDeleteModelWorker, threads - 1, map[string]interface{}{
+			"catalogName": catalogName, "schemaName": schemaName}},
+	}, nil
+}
+func CreateDeleteListVolume(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	catalogName, err := createCatalog(ctx, catalog)
+	if err != nil {
+		return nil, err
+	}
+
+	schemaName, err := createSchema(ctx, catalog, catalogName)
+	if err != nil {
+		return nil, err
+	}
+
+	return []internal.WorkerConfig{
+		{internal.ListVolumesWorker, 1, map[string]interface{}{
+			"catalogName": catalogName, "schemaName": schemaName}},
+		{internal.CreateDeleteVolumeWorker, threads - 1, map[string]interface{}{
 			"catalogName": catalogName, "schemaName": schemaName}},
 	}, nil
 }
 
-func SetupUpdateGetCatalog(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	workers := make([]WorkerConfig, threads)
+func UpdateGetCatalog(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	workers := make([]internal.WorkerConfig, threads)
 	for thread := range threads {
 		catalogName, err := createCatalog(ctx, catalog)
 		if err != nil {
 			return nil, err
 		}
 
-		workers[thread] = WorkerConfig{
-			workerFunc: updateGetCatalogWorker,
-			threads:    1,
-			params: map[string]interface{}{
+		workers[thread] = internal.WorkerConfig{
+			internal.UpdateGetCatalogWorker,
+			1,
+			map[string]interface{}{
 				"catalogName": catalogName,
 			},
 		}
@@ -539,8 +540,8 @@ func SetupUpdateGetCatalog(ctx context.Context, catalog Catalog, threads int) ([
 	return workers, nil
 }
 
-func SetupUpdateGetPrincipal(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	workers := make([]WorkerConfig, threads)
+func UpdateGetPrincipal(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	workers := make([]internal.WorkerConfig, threads)
 
 	for thread := range threads {
 		principalName := uuid.NewString()
@@ -548,10 +549,10 @@ func SetupUpdateGetPrincipal(ctx context.Context, catalog Catalog, threads int) 
 		if err != nil {
 			return nil, err
 		}
-		workers[thread] = WorkerConfig{
-			workerFunc: updateGetPrincipalWorker,
-			threads:    1,
-			params: map[string]interface{}{
+		workers[thread] = internal.WorkerConfig{
+			internal.UpdateGetPrincipalWorker,
+			1,
+			map[string]interface{}{
 				"principalName": principalName,
 			},
 		}
@@ -560,8 +561,8 @@ func SetupUpdateGetPrincipal(ctx context.Context, catalog Catalog, threads int) 
 
 }
 
-func SetupUpdateGetSchema(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	workers := make([]WorkerConfig, threads)
+func UpdateGetSchema(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	workers := make([]internal.WorkerConfig, threads)
 
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
@@ -573,10 +574,10 @@ func SetupUpdateGetSchema(ctx context.Context, catalog Catalog, threads int) ([]
 			return nil, err
 		}
 
-		workers[thread] = WorkerConfig{
-			workerFunc: updateGetSchemaWorker,
-			threads:    1,
-			params: map[string]interface{}{
+		workers[thread] = internal.WorkerConfig{
+			internal.UpdateGetSchemaWorker,
+			1,
+			map[string]interface{}{
 				"catalogName": catalogName,
 				"schemaName":  schemaName,
 			},
@@ -587,8 +588,8 @@ func SetupUpdateGetSchema(ctx context.Context, catalog Catalog, threads int) ([]
 	return workers, nil
 }
 
-func SetupUpdateGetTable(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	workers := make([]WorkerConfig, threads)
+func UpdateGetTable(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	workers := make([]internal.WorkerConfig, threads)
 
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
@@ -607,10 +608,10 @@ func SetupUpdateGetTable(ctx context.Context, catalog Catalog, threads int) ([]W
 			return nil, err
 		}
 
-		workers[thread] = WorkerConfig{
-			workerFunc: updateGetTableWorker,
-			threads:    1,
-			params: map[string]interface{}{
+		workers[thread] = internal.WorkerConfig{
+			internal.UpdateGetTableWorker,
+			1,
+			map[string]interface{}{
 				"catalogName": catalogName,
 				"schemaName":  schemaName,
 				"tableName":   tableName,
@@ -626,8 +627,8 @@ func SetupUpdateGetTable(ctx context.Context, catalog Catalog, threads int) ([]W
 	return workers, nil
 }
 
-func SetupUpdateGetView(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	workers := make([]WorkerConfig, threads)
+func UpdateGetView(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	workers := make([]internal.WorkerConfig, threads)
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -646,8 +647,8 @@ func SetupUpdateGetView(ctx context.Context, catalog Catalog, threads int) ([]Wo
 			return nil, err
 		}
 
-		workers[thread] = WorkerConfig{
-			updateGetViewWorker, 1, map[string]interface{}{
+		workers[thread] = internal.WorkerConfig{
+			internal.UpdateGetViewWorker, 1, map[string]interface{}{
 				"catalogName": catalogName,
 				"schemaName":  schemaName,
 				"viewName":    viewName,
@@ -658,8 +659,8 @@ func SetupUpdateGetView(ctx context.Context, catalog Catalog, threads int) ([]Wo
 	return workers, nil
 }
 
-func SetupUpdateGetModel(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	workers := make([]WorkerConfig, threads)
+func UpdateGetModel(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	workers := make([]internal.WorkerConfig, threads)
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -676,8 +677,8 @@ func SetupUpdateGetModel(ctx context.Context, catalog Catalog, threads int) ([]W
 			return nil, err
 		}
 
-		workers[thread] = WorkerConfig{
-			updateGetModelWorker, 1, map[string]interface{}{
+		workers[thread] = internal.WorkerConfig{
+			internal.UpdateGetModelWorker, 1, map[string]interface{}{
 				"catalogName": catalogName,
 				"schemaName":  schemaName,
 				"modelName":   modelName,
@@ -687,8 +688,8 @@ func SetupUpdateGetModel(ctx context.Context, catalog Catalog, threads int) ([]W
 	}
 	return workers, nil
 }
-func SetupUpdateGetVolume(ctx context.Context, catalog Catalog, threads int) ([]WorkerConfig, error) {
-	workers := make([]WorkerConfig, threads)
+func UpdateGetVolume(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
+	workers := make([]internal.WorkerConfig, threads)
 	catalogName, err := createCatalog(ctx, catalog)
 	if err != nil {
 		return nil, err
@@ -706,8 +707,8 @@ func SetupUpdateGetVolume(ctx context.Context, catalog Catalog, threads int) ([]
 			return nil, err
 		}
 
-		workers[thread] = WorkerConfig{
-			updateGetVolumeWorker, 1, map[string]interface{}{
+		workers[thread] = internal.WorkerConfig{
+			internal.UpdateGetVolumeWorker, 1, map[string]interface{}{
 				"catalogName": catalogName,
 				"schemaName":  schemaName,
 				"volumeName":  volumeName,

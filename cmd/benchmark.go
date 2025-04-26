@@ -5,6 +5,7 @@ import (
 	"benchmark/internal/catalog/polaris"
 	"benchmark/internal/catalog/unity"
 	"benchmark/internal/common"
+	"benchmark/internal/setup"
 	"context"
 	"encoding/json"
 	"flag"
@@ -245,66 +246,66 @@ func processResults(done chan error, startTime time.Time, experiment common.Expe
 func createBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
 		common.CatalogEntity: func(_ context.Context, _ internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
-			return internal.SetupCreateCatalog(threads)
+			return setup.CreateCatalog(threads)
 		},
 		common.PrincipalEntity: func(_ context.Context, _ internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
-			return internal.SetupCreatePrincipal(threads)
+			return setup.CreatePrincipal(threads)
 		},
-		common.SchemaEntity:   internal.SetupCreateSchema,
-		common.TableEntity:    internal.SetupCreateTable,
-		common.ViewEntity:     internal.SetupCreateView,
-		common.FunctionEntity: internal.SetupCreateFunction,
-		common.ModelEntity:    internal.SetupCreateModel,
-		common.VolumeEntity:   internal.SetupCreateVolume,
+		common.SchemaEntity:   setup.CreateSchema,
+		common.TableEntity:    setup.CreateTable,
+		common.ViewEntity:     setup.CreateView,
+		common.FunctionEntity: setup.CreateFunction,
+		common.ModelEntity:    setup.CreateModel,
+		common.VolumeEntity:   setup.CreateVolume,
 	}
 }
 
 func createDeleteBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
-		common.CatalogEntity:   internal.SetupCreateDeleteCatalog,
-		common.PrincipalEntity: internal.SetupCreateDeletePrincipal,
-		common.SchemaEntity:    internal.SetupCreateDeleteSchema,
-		common.TableEntity:     internal.SetupCreateDeleteTable,
-		common.ViewEntity:      internal.SetupCreateDeleteView,
-		common.FunctionEntity:  internal.SetupCreateDeleteFunction,
-		common.ModelEntity:     internal.SetupCreateDeleteModel,
-		common.VolumeEntity:    internal.SetupCreateDeleteVolume,
+		common.CatalogEntity:   setup.CreateDeleteCatalog,
+		common.PrincipalEntity: setup.CreateDeletePrincipal,
+		common.SchemaEntity:    setup.CreateDeleteSchema,
+		common.TableEntity:     setup.CreateDeleteTable,
+		common.ViewEntity:      setup.CreateDeleteView,
+		common.FunctionEntity:  setup.CreateDeleteFunction,
+		common.ModelEntity:     setup.CreateDeleteModel,
+		common.VolumeEntity:    setup.CreateDeleteVolume,
 	}
 }
 
 func updateBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
-		common.CatalogEntity:   internal.SetupUpdateCatalog,
-		common.PrincipalEntity: internal.SetupUpdatePrincipal,
-		common.SchemaEntity:    internal.SetupUpdateSchema,
-		common.TableEntity:     internal.SetupUpdateTable,
-		common.ViewEntity:      internal.SetupUpdateView,
-		common.ModelEntity:     internal.SetupUpdateModel,
-		common.VolumeEntity:    internal.SetupUpdateVolume,
+		common.CatalogEntity:   setup.UpdateCatalog,
+		common.PrincipalEntity: setup.UpdatePrincipal,
+		common.SchemaEntity:    setup.UpdateSchema,
+		common.TableEntity:     setup.UpdateTable,
+		common.ViewEntity:      setup.UpdateView,
+		common.ModelEntity:     setup.UpdateModel,
+		common.VolumeEntity:    setup.UpdateVolume,
 	}
 }
 
 func createDeleteListBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
-		common.CatalogEntity:   internal.SetupCreateDeleteListCatalog,
-		common.PrincipalEntity: internal.SetupCreateDeleteListPrincipal,
-		common.SchemaEntity:    internal.SetupCreateDeleteListSchema,
-		common.TableEntity:     internal.SetupCreateDeleteListTable,
-		common.ViewEntity:      internal.SetupCreateDeleteListView,
-		common.FunctionEntity:  internal.SetupCreateDeleteListFunction,
-		common.ModelEntity:     internal.SetupCreateDeleteListModel,
-		common.VolumeEntity:    internal.SetupCreateDeleteListVolume,
+		common.CatalogEntity:   setup.CreateDeleteListCatalog,
+		common.PrincipalEntity: setup.CreateDeleteListPrincipal,
+		common.SchemaEntity:    setup.CreateDeleteListSchema,
+		common.TableEntity:     setup.CreateDeleteListTable,
+		common.ViewEntity:      setup.CreateDeleteListView,
+		common.FunctionEntity:  setup.CreateDeleteListFunction,
+		common.ModelEntity:     setup.CreateDeleteListModel,
+		common.VolumeEntity:    setup.CreateDeleteListVolume,
 	}
 }
 
 func updateGetBenchmarkMap() map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error) {
 	return map[common.EntityType]func(ctx context.Context, catalog internal.Catalog, threads int) ([]internal.WorkerConfig, error){
-		common.CatalogEntity:   internal.SetupUpdateGetCatalog,
-		common.PrincipalEntity: internal.SetupUpdateGetPrincipal,
-		common.SchemaEntity:    internal.SetupUpdateGetSchema,
-		common.TableEntity:     internal.SetupUpdateGetTable,
-		common.ViewEntity:      internal.SetupUpdateGetView,
-		common.ModelEntity:     internal.SetupUpdateGetModel,
-		common.VolumeEntity:    internal.SetupUpdateGetVolume,
+		common.CatalogEntity:   setup.UpdateGetCatalog,
+		common.PrincipalEntity: setup.UpdateGetPrincipal,
+		common.SchemaEntity:    setup.UpdateGetSchema,
+		common.TableEntity:     setup.UpdateGetTable,
+		common.ViewEntity:      setup.UpdateGetView,
+		common.ModelEntity:     setup.UpdateGetModel,
+		common.VolumeEntity:    setup.UpdateGetVolume,
 	}
 }

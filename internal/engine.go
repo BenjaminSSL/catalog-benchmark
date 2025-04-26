@@ -9,9 +9,9 @@ import (
 )
 
 type WorkerConfig struct {
-	workerFunc WorkerFunc
-	threads    int
-	params     map[string]interface{}
+	WorkerFunc WorkerFunc
+	Threads    int
+	Params     map[string]interface{}
 }
 
 type BenchmarkEngine struct {
@@ -49,7 +49,7 @@ func (e *BenchmarkEngine) RunBenchmark(ctx context.Context, workers []WorkerConf
 	threadAllocated := 0
 
 	for _, worker := range workers {
-		for t := 0; t < worker.threads; t++ {
+		for t := 0; t < worker.Threads; t++ {
 			threadID := threadAllocated
 			wg.Add(1)
 
@@ -59,7 +59,7 @@ func (e *BenchmarkEngine) RunBenchmark(ctx context.Context, workers []WorkerConf
 				defer logger.Close()
 
 				w := NewWorker(
-					e.client, e.Catalog, logger, config.params, config.workerFunc)
+					e.client, e.Catalog, logger, config.Params, config.WorkerFunc)
 
 				w.Run(ctx)
 
