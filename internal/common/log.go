@@ -74,7 +74,14 @@ func (l *RoutineBatchLogger) Flush() {
 		return
 	}
 
-	for _, entry := range l.buffer {
+	// Copy the buffer to a new slice to avoid modifying the original slice
+	bufferCopy := make([]LogEntry, len(l.buffer))
+	copy(bufferCopy, l.buffer)
+
+	// Reset the buffer
+	l.buffer = l.buffer[:0]
+
+	for _, entry := range bufferCopy {
 
 		jsonData, err := json.Marshal(entry)
 
@@ -86,8 +93,6 @@ func (l *RoutineBatchLogger) Flush() {
 		}
 	}
 
-	// Reset the buffer
-	l.buffer = l.buffer[:0]
 }
 
 func (l *RoutineBatchLogger) Close() {
