@@ -45,9 +45,7 @@ func NewBenchmarkEngine(experimentID string, catalog Catalog, threads int, durat
 func (e *BenchmarkEngine) RunBenchmark(ctx context.Context, workers []WorkerConfig) error {
 	ctx, cancel := context.WithTimeout(ctx, e.duration)
 	defer cancel()
-
 	var wg sync.WaitGroup
-
 	threadAllocated := 0
 
 	for _, worker := range workers {
@@ -66,7 +64,6 @@ func (e *BenchmarkEngine) RunBenchmark(ctx context.Context, workers []WorkerConf
 				w.Run(ctx)
 
 			}(threadID, worker)
-
 			threadAllocated++
 		}
 	}

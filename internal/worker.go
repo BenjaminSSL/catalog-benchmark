@@ -12,13 +12,13 @@ import (
 
 type WorkerFunc func(w *Worker)
 type Worker struct {
+	Ctx     context.Context
 	Func    WorkerFunc
+	Catalog Catalog
 	Client  *http.Client
 	Logger  *common.RoutineBatchLogger
-	Catalog Catalog
 	Step    int
 	Params  map[string]interface{}
-	Ctx     context.Context
 }
 
 func NewWorker(client *http.Client, catalog Catalog, logger *common.RoutineBatchLogger, params map[string]interface{}, workerFunc WorkerFunc) *Worker {
