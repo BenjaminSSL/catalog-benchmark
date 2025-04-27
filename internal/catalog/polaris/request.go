@@ -67,6 +67,8 @@ func (c *Catalog) CreateCatalog(ctx context.Context, name string) (*http.Respons
 }
 
 func (c *Catalog) GetCatalog(ctx context.Context, name string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 	req, err := common.NewRequestBuilder().SetMethod("GET").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, PathManagement, Token)
 	if err != nil {
 		return nil, err
@@ -75,6 +77,8 @@ func (c *Catalog) GetCatalog(ctx context.Context, name string) (*http.Response, 
 }
 
 func (c *Catalog) DeleteCatalog(ctx context.Context, name string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 	req, err := common.NewRequestBuilder().SetMethod("DELETE").SetEndpoint(fmt.Sprintf("/catalogs/%s", name)).Build(ctx, Host, PathManagement, Token)
 	if err != nil {
 		return nil, err

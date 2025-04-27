@@ -100,7 +100,7 @@ type CreateTableBody struct {
 }
 
 type UpdateSchemaBody struct {
-	NewName    string            `json:"new_name"`
+	NewName    string            `json:"new_name,omitempty"`
 	Properties map[string]string `json:"properties"`
 	Comment    string            `json:"comment,omitempty"`
 }
@@ -147,7 +147,7 @@ type CreateModelBody struct {
 }
 
 type UpdateModelBody struct {
-	NewName string `json:"new_name"`
+	NewName string `json:"new_name,omitempty"`
 	Comment string `json:"comment,omitempty"`
 }
 
@@ -160,6 +160,6 @@ type CreateVolumeBody struct {
 }
 
 type UpdateVolumeBody struct {
-	NewName string `json:"new_name"`
+	NewName string `json:"new_name,omitempty"`
 	Comment string `json:"comment,omitempty"`
 }

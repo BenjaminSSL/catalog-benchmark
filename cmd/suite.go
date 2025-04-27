@@ -45,8 +45,8 @@ func runSuite(catalog string) error {
 		entities = append(entities, extraEntities...)
 	}
 
-	threads := []int{100}
-	durations := []time.Duration{time.Millisecond * 100}
+	threads := []int{2, 5, 25, 50, 100}
+	durations := []time.Duration{time.Second, time.Second, 2 * time.Second * 5}
 	benchmarks := []common.BenchmarkType{
 		common.CreateBenchmark,
 		common.CreateDeleteBenchmark,

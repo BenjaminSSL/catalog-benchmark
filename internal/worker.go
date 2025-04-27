@@ -4,6 +4,7 @@ import (
 	"benchmark/internal/common"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"io"
 	"net/http"
@@ -284,6 +285,8 @@ func UpdateSchemaWorker(w *Worker) {
 	catalogName := w.Params["catalogName"].(string)
 	schemaName := w.Params["schemaName"].(string)
 	entityVersion := w.Params["entityVersion"].(int)
+
+	fmt.Printf("schemaname : %s\n", schemaName)
 
 	resp, err := w.Catalog.UpdateSchema(w.Ctx, catalogName, schemaName, map[string]interface{}{
 		"entityVersion": entityVersion},

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -312,7 +313,7 @@ func (c *Catalog) GetTable(ctx context.Context, catalogName string, schemaName s
 	return client.Do(req)
 }
 
-func (c *Catalog) UpdateSchema(ctx context.Context, catalogName string, tableName string, params map[string]interface{}) (*http.Response, error) {
+func (c *Catalog) UpdateSchema(ctx context.Context, catalogName string, schemaName string, params map[string]interface{}) (*http.Response, error) {
 	properties, ok := params["properties"].(map[string]string)
 	if !ok {
 		properties = make(map[string]string)
@@ -323,7 +324,8 @@ func (c *Catalog) UpdateSchema(ctx context.Context, catalogName string, tableNam
 
 	jsonBody, _ := json.Marshal(body)
 
-	req, err := common.NewRequestBuilder().SetMethod("PATCH").SetEndpoint(fmt.Sprintf("/schemas/%s.%s", catalogName, tableName)).SetJSONBody(jsonBody).Build(ctx, Host, Path, "")
+	req, err := common.NewRequestBuilder().SetMethod("PATCH").SetEndpoint(fmt.Sprintf("/schemas/%s.%s", catalogName, schemaName)).SetJSONBody(jsonBody).Build(ctx, Host, Path, "")
+	log.Println(req.URL.String())
 	if err != nil {
 		return nil, err
 	}
@@ -555,6 +557,8 @@ func (c *Catalog) CreateVolume(ctx context.Context, catalogName string, schemaNa
 }
 
 func (c *Catalog) UpdateVolume(ctx context.Context, catalogName string, schemaName string, volumeName string, params map[string]interface{}) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 	entityVersion := params["entityVersion"].(int)
 	body := UpdateVolumeBody{
 		Comment: strconv.Itoa(entityVersion),
