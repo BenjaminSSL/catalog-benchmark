@@ -11,7 +11,7 @@ SELECT *
 FROM read_json_auto('output/experiments/*.json');
 
 -- Select all distinct logs with level 'ERROR'
-SELECT DISTINCT ex.catalog, ex.entity, l.body, l.method, ex.benchmark, ex.threads FROM logs l JOIN experiments ex ON l.experiment_id = ex.id WHERE l.level = 'ERROR' AND l.method !='NONE' AND ex.catalog = 'unity' AND l.body NOT LIKE '%NOT_FOUND%';
+SELECT DISTINCT ex.catalog, ex.entity, l.body, l.method, ex.benchmark, ex.threads FROM logs l JOIN experiments ex ON l.experiment_id = ex.id WHERE l.level = 'ERROR' AND l.body LIKE '%modification%'
 
 -- Select all distinct logs with level 'ERROR' for each benchmark id
 SELECT DISTINCT ex.entity, l.body, l.method, ex.benchmark, ex.threads FROM logs l JOIN experiments ex ON l.experiment_id = ex.id WHERE l.level = 'ERROR' AND ex.benchmark = 1 AND l.body LIKE '%concurrent%';
