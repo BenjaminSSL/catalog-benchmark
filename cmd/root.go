@@ -26,7 +26,7 @@ func Run() {
 	}
 
 	args := os.Args[1:]
-	// TODO: replace with proper help default command
+
 	if len(args) == 0 {
 		log.Println("No command to execute")
 		os.Exit(1)
